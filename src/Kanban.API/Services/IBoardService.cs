@@ -1,0 +1,17 @@
+using Kanban.API.Common;
+using Kanban.API.DTOs.Boards;
+
+namespace Kanban.API.Services;
+
+public interface IBoardService
+{
+    Task<Result<BoardResponse>> GetByIdAsync(int boardId, string userId, CancellationToken cancellationToken = default);
+
+    Task<Result<IReadOnlyList<BoardSummaryResponse>>> GetAllForUserAsync(string userId, CancellationToken cancellationToken = default);
+
+    Task<Result<BoardResponse>> CreateAsync(CreateBoardRequest request, string userId, CancellationToken cancellationToken = default);
+
+    Task<Result<BoardResponse>> UpdateAsync(int boardId, UpdateBoardRequest request, string userId, CancellationToken cancellationToken = default);
+
+    Task<Result> DeleteAsync(int boardId, string userId, CancellationToken cancellationToken = default);
+}
