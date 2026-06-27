@@ -1,6 +1,7 @@
 using Kanban.API.Data;
 using Kanban.API.Endpoints;
 using Kanban.API.Models;
+using Kanban.API.Services;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -12,6 +13,7 @@ builder.Services.AddIdentityApiEndpoints<ApplicationUser>()
 
 // Add services to the container.
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+builder.Services.AddScoped<IBoardService, BoardService>();
 builder.Services.AddAuthorization();
 
 builder.Services.AddEndpointsApiExplorer();
