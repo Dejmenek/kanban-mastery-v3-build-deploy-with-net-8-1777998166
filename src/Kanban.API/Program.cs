@@ -33,6 +33,10 @@ app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
 
+app.MapIdentityApi<ApplicationUser>();
+
 app.MapBoardEndpoints();
 
 app.Run();
+
+public partial class Program { }
