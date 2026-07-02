@@ -39,6 +39,7 @@ app.UseAuthorization();
 app.MapIdentityApi<ApplicationUser>();
 
 app.MapBoardEndpoints();
+app.MapUserEndpoints();
 
 app.Run();
 
