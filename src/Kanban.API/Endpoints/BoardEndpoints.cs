@@ -13,6 +13,7 @@ public static class BoardEndpoints
             .RequireAuthorization();
 
         group.MapGet("/", GetAllForUser);
+        group.MapPost("/", CreateBoard);
     }
 
     private static async Task<Results<Ok<IReadOnlyList<BoardSummaryResponse>>, UnauthorizedHttpResult>> GetAllForUser(
@@ -26,5 +27,19 @@ public static class BoardEndpoints
 
         var result = await boardService.GetAllForUserAsync(userId, cancellationToken);
         return TypedResults.Ok(result.Value);
+    }
+
+    private static async Task<Results<Created<BoardResponse>, UnauthorizedHttpResult>> CreateBoard(
+        CreateBoardRequest request, IBoardService boardService, ClaimsPrincipal user, CancellationToken cancellationToken)
+    {
+        var userId = user.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (userId is null)
+        {
+            return TypedResults.Unauthorized();
+        }
+
+        var result = await boardService.CreateAsync(request, userId, cancellationToken);
+
+        return TypedResults.Created<BoardResponse>($"/api/boards/{result.Value.Id}", result.Value);
     }
 }
