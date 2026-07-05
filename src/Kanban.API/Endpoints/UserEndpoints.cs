@@ -1,5 +1,6 @@
 using Kanban.API.Data;
 using Kanban.API.DTOs.Users;
+using Kanban.API.Services;
 using Microsoft.AspNetCore.Http.HttpResults;
 using System.Security.Claims;
 
@@ -16,15 +17,15 @@ public static class UserEndpoints
     }
 
     private static async Task<Results<Ok<CurrentUserProfileResponse>, NotFound, UnauthorizedHttpResult>> GetCurrentUserProfile(
-        ClaimsPrincipal user, ApplicationDbContext db, CancellationToken cancellationToken)
+        ClaimsPrincipal user, ApplicationDbContext db, IUserService userService, CancellationToken cancellationToken)
     {
         var userId = user.FindFirstValue(ClaimTypes.NameIdentifier);
         if (userId is null) return TypedResults.Unauthorized();
 
-        var appUser = await db.Users.FindAsync([userId], cancellationToken);
+        var result = await userService.GetCurrentUserProfileAsync(userId, cancellationToken);
 
-        if (appUser is null) return TypedResults.NotFound();
-
-        return TypedResults.Ok(new CurrentUserProfileResponse(appUser.Id, appUser.UserName, appUser.Email));
+        return result.IsSuccess
+            ? TypedResults.Ok(result.Value)
+            : TypedResults.NotFound();
     }
 }
