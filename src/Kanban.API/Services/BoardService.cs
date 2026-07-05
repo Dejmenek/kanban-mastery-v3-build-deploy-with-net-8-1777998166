@@ -1,6 +1,7 @@
 using Kanban.API.Common;
 using Kanban.API.Data;
 using Kanban.API.DTOs.Boards;
+using Kanban.API.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace Kanban.API.Services;
@@ -25,8 +26,26 @@ public class BoardService(ApplicationDbContext context) : IBoardService
     public Task<Result<BoardResponse>> GetByIdAsync(int boardId, string userId, CancellationToken cancellationToken = default)
         => throw new NotImplementedException();
 
-    public Task<Result<BoardResponse>> CreateAsync(CreateBoardRequest request, string userId, CancellationToken cancellationToken = default)
-        => throw new NotImplementedException();
+    public async Task<Result<BoardResponse>> CreateAsync(
+        CreateBoardRequest request, string userId, CancellationToken cancellationToken = default)
+    {
+        var board = new Board { Name = request.Name, Description = request.Description };
+        var membership = new BoardMember { Board = board, MemberId = userId, Role = Role.Owner };
+
+        context.Boards.Add(board);
+        context.BoardsMemberships.Add(membership);
+        await context.SaveChangesAsync(cancellationToken);
+
+        var userName = await context.Users
+            .Where(u => u.Id == userId)
+            .Select(u => u.UserName)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        return new BoardResponse(board.Id, board.Name, board.Description,
+        [
+            new BoardMemberResponse(userId, userName, Role.Owner.ToString())
+        ]);
+    }
 
     public Task<Result<BoardResponse>> UpdateAsync(int boardId, UpdateBoardRequest request, string userId, CancellationToken cancellationToken = default)
         => throw new NotImplementedException();
