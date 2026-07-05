@@ -17,6 +17,7 @@ builder.Services.AddIdentityApiEndpoints<ApplicationUser>(options =>
 // Add services to the container.
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddScoped<IBoardService, BoardService>();
+builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddAuthorization();
 
 builder.Services.AddEndpointsApiExplorer();
