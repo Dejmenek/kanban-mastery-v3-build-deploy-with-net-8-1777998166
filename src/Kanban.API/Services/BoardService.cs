@@ -1,6 +1,7 @@
 using Kanban.API.Common;
 using Kanban.API.Data;
 using Kanban.API.DTOs.Boards;
+using Kanban.API.Errors;
 using Kanban.API.Models;
 using Microsoft.EntityFrameworkCore;
 
@@ -52,4 +53,47 @@ public class BoardService(ApplicationDbContext context) : IBoardService
 
     public Task<Result> DeleteAsync(int boardId, string userId, CancellationToken cancellationToken = default)
         => throw new NotImplementedException();
+
+    public async Task<Result<BoardMemberResponse>> AddMemberAsync(int boardId, AddBoardMemberRequest request, CancellationToken cancellationToken = default)
+    {
+        if (request.UserId is null && request.Email is null)
+        {
+            return Result.Failure<BoardMemberResponse>(BoardErrors.MissingMemberIdentifier);
+        }
+
+        var board = await context.Boards
+             .AsNoTracking()
+             .Include(b => b.Members)
+             .FirstOrDefaultAsync(b => b.Id == boardId, cancellationToken);
+        if (board is null)
+        {
+            return Result.Failure<BoardMemberResponse>(BoardErrors.NotFound(boardId));
+        }
+
+        var userToAdd = await context.Users
+            .AsNoTracking()
+            .Where(u => (request.UserId != null && u.Id == request.UserId) ||
+                        (request.Email != null && u.Email == request.Email))
+            .FirstOrDefaultAsync(cancellationToken);
+        if (userToAdd is null)
+        {
+            return Result.Failure<BoardMemberResponse>(BoardErrors.UserNotFound(request.UserId ?? request.Email!));
+        }
+
+        if (board.Members.Any(m => m.MemberId == userToAdd.Id))
+        {
+            return Result.Failure<BoardMemberResponse>(BoardErrors.AlreadyMember);
+        }
+
+        var newMember = new BoardMember
+        {
+            BoardId = boardId,
+            MemberId = userToAdd.Id,
+            Role = Role.Member
+        };
+        context.BoardsMemberships.Add(newMember);
+        await context.SaveChangesAsync(cancellationToken);
+
+        return new BoardMemberResponse(userToAdd.Id, userToAdd.UserName, newMember.Role.ToString());
+    }
 }
