@@ -5,7 +5,7 @@ namespace Kanban.API.Services;
 
 public interface IBoardService
 {
-    Task<Result<BoardResponse>> GetByIdAsync(int boardId, string userId, CancellationToken cancellationToken = default);
+    Task<Result<BoardDetailsResponse>> GetByIdAsync(int boardId, CancellationToken cancellationToken = default);
 
     Task<Result<IReadOnlyList<BoardSummaryResponse>>> GetAllForUserAsync(string userId, CancellationToken cancellationToken = default);
 

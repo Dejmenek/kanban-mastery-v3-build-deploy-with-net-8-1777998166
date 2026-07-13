@@ -24,8 +24,32 @@ public class BoardService(ApplicationDbContext context) : IBoardService
         return Result.Success<IReadOnlyList<BoardSummaryResponse>>(boards);
     }
 
-    public Task<Result<BoardResponse>> GetByIdAsync(int boardId, string userId, CancellationToken cancellationToken = default)
-        => throw new NotImplementedException();
+    public async Task<Result<BoardDetailsResponse>> GetByIdAsync(int boardId, CancellationToken cancellationToken = default)
+    {
+        var board = await context.Boards
+            .Where(b => b.Id == boardId)
+            .Select(b => new BoardDetailsResponse(
+                b.Id,
+                b.Name,
+                b.Description,
+                b.Columns
+                    .OrderBy(c => c.Position)
+                    .Select(c => new ColumnResponse(
+                        c.Id,
+                        c.Title,
+                        c.Description,
+                        c.Position,
+                        c.Cards
+                            .OrderBy(ca => ca.Position)
+                            .Select(ca => new CardResponse(ca.Id, ca.Title, ca.Description, ca.Position))
+                            .ToList()))
+                    .ToList()))
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (board is null) return Result.Failure<BoardDetailsResponse>(BoardErrors.NotFound(boardId));
+
+        return board;
+    }
 
     public async Task<Result<BoardResponse>> CreateAsync(
         CreateBoardRequest request, string userId, CancellationToken cancellationToken = default)
