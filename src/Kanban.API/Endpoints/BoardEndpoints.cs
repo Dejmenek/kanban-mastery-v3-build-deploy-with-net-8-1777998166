@@ -17,6 +17,32 @@ public static class BoardEndpoints
         group.MapGet("/", GetAllForUser);
         group.MapPost("/", CreateBoard);
         group.MapPost("/{boardId:int}/members", AddMember);
+        group.MapGet("/{boardId:int}", GetById);
+    }
+
+    private static async Task<Results<Ok<BoardDetailsResponse>, NotFound<string>, ForbidHttpResult, UnauthorizedHttpResult>> GetById(
+        int boardId, IBoardService boardService, ClaimsPrincipal user,
+        IAuthorizationService authService, CancellationToken cancellationToken)
+    {
+        var userId = user.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (userId is null)
+        {
+            return TypedResults.Unauthorized();
+        }
+
+        var authResult = await authService.AuthorizeAsync(user, boardId, "IsBoardMember");
+        if (!authResult.Succeeded)
+        {
+            return TypedResults.Forbid();
+        }
+
+        var result = await boardService.GetByIdAsync(boardId, cancellationToken);
+        if (result.IsFailure)
+        {
+            return TypedResults.NotFound(result.Error.Description);
+        }
+
+        return TypedResults.Ok(result.Value);
     }
 
     private static async Task<Results<Ok<IReadOnlyList<BoardSummaryResponse>>, UnauthorizedHttpResult>> GetAllForUser(
