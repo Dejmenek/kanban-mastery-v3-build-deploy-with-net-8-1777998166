@@ -10,6 +10,13 @@ internal class CardConfiguration : IEntityTypeConfiguration<Card>
     {
         builder.HasKey(x => x.Id);
 
+        builder.Property(x => x.Title)
+            .IsRequired()
+            .HasMaxLength(100);
+
+        builder.Property(x => x.Description)
+            .HasMaxLength(300);
+
         builder.HasOne(x => x.Column)
             .WithMany(x => x.Cards)
             .HasForeignKey(x => x.ColumnId)
