@@ -271,4 +271,152 @@ public class BoardEndpointsTests : IntegrationTestBase, IClassFixture<Integratio
         // Assert
         Assert.Equal(HttpStatusCode.Conflict, secondResponse.StatusCode);
     }
+
+    [Fact]
+    public async Task GetById_WhenOwnerRequestsBoard_ReturnsBoardDetails()
+    {
+        // Arrange
+        var ownerEmail = "owner@example.com";
+        var ownerPassword = "Test123!";
+        using (var scope = Factory.Services.CreateScope())
+        {
+            var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+            var owner = new ApplicationUser { UserName = ownerEmail, Email = ownerEmail, EmailConfirmed = true };
+            await userManager.CreateAsync(owner, ownerPassword);
+        }
+
+        var ownerLoginResponse = await _client.PostAsJsonAsync("/login", new { email = ownerEmail, password = ownerPassword }, TestContext.Current.CancellationToken);
+        var ownerTokens = await ownerLoginResponse.Content.ReadFromJsonAsync<AccessTokenResponse>(TestContext.Current.CancellationToken);
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", ownerTokens!.AccessToken);
+
+        var createBoardResponse = await _client.PostAsJsonAsync("/api/boards", new { Name = "Test Board" }, TestContext.Current.CancellationToken);
+        var board = await createBoardResponse.Content.ReadFromJsonAsync<BoardResponse>(TestContext.Current.CancellationToken);
+        Assert.NotNull(board);
+
+        Column column;
+        Card card;
+        using (var scope = Factory.Services.CreateScope())
+        {
+            var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            column = new Column { BoardId = board.Id, Title = "To Do", Position = 0 };
+            context.Columns.Add(column);
+            await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+            card = new Card { ColumnId = column.Id, Title = "Test Card", Position = 0 };
+            context.Cards.Add(card);
+            await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        }
+
+        // Act
+        var response = await _client.GetAsync($"/api/boards/{board.Id}", TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var body = await response.Content.ReadFromJsonAsync<BoardDetailsResponse>(TestContext.Current.CancellationToken);
+        Assert.NotNull(body);
+        Assert.Equal(board.Id, body.Id);
+        Assert.Equal(board.Name, body.Name);
+
+        var returnedColumn = Assert.Single(body.Columns);
+        Assert.Equal(column.Id, returnedColumn.Id);
+        Assert.Equal(column.Title, returnedColumn.Title);
+
+        var returnedCard = Assert.Single(returnedColumn.Cards);
+        Assert.Equal(card.Id, returnedCard.Id);
+        Assert.Equal(card.Title, returnedCard.Title);
+    }
+
+    [Fact]
+    public async Task GetById_WhenMemberRequestsBoard_ReturnsBoardDetails()
+    {
+        // Arrange
+        var ownerEmail = "owner@example.com";
+        var ownerPassword = "Test123!";
+        using (var scope = Factory.Services.CreateScope())
+        {
+            var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+            var owner = new ApplicationUser { UserName = ownerEmail, Email = ownerEmail, EmailConfirmed = true };
+            await userManager.CreateAsync(owner, ownerPassword);
+        }
+
+        var ownerLoginResponse = await _client.PostAsJsonAsync("/login", new { email = ownerEmail, password = ownerPassword }, TestContext.Current.CancellationToken);
+        var ownerTokens = await ownerLoginResponse.Content.ReadFromJsonAsync<AccessTokenResponse>(TestContext.Current.CancellationToken);
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", ownerTokens!.AccessToken);
+
+        var createBoardResponse = await _client.PostAsJsonAsync("/api/boards", new { Name = "Test Board" }, TestContext.Current.CancellationToken);
+        var board = await createBoardResponse.Content.ReadFromJsonAsync<BoardResponse>(TestContext.Current.CancellationToken);
+        Assert.NotNull(board);
+
+        var memberEmail = "member@example.com";
+        var memberPassword = "Test123!";
+        using (var scope = Factory.Services.CreateScope())
+        {
+            var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+            var member = new ApplicationUser { UserName = memberEmail, Email = memberEmail, EmailConfirmed = true };
+            await userManager.CreateAsync(member, memberPassword);
+        }
+
+        var addMemberResponse = await _client.PostAsJsonAsync(
+            $"/api/boards/{board.Id}/members",
+            new { Email = memberEmail },
+            TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.Created, addMemberResponse.StatusCode);
+
+        var memberLoginResponse = await _client.PostAsJsonAsync("/login", new { email = memberEmail, password = memberPassword }, TestContext.Current.CancellationToken);
+        var memberTokens = await memberLoginResponse.Content.ReadFromJsonAsync<AccessTokenResponse>(TestContext.Current.CancellationToken);
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", memberTokens!.AccessToken);
+
+        // Act
+        var response = await _client.GetAsync($"/api/boards/{board.Id}", TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var body = await response.Content.ReadFromJsonAsync<BoardDetailsResponse>(TestContext.Current.CancellationToken);
+        Assert.NotNull(body);
+        Assert.Equal(board.Id, body.Id);
+        Assert.Equal(board.Name, body.Name);
+    }
+
+    [Fact]
+    public async Task GetById_AsNonMember_ReturnsForbidden()
+    {
+        // Arrange
+        var ownerEmail = "owner@example.com";
+        var ownerPassword = "Test123!";
+        using (var scope = Factory.Services.CreateScope())
+        {
+            var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+            var owner = new ApplicationUser { UserName = ownerEmail, Email = ownerEmail, EmailConfirmed = true };
+            await userManager.CreateAsync(owner, ownerPassword);
+        }
+
+        var ownerLoginResponse = await _client.PostAsJsonAsync("/login", new { email = ownerEmail, password = ownerPassword }, TestContext.Current.CancellationToken);
+        var ownerTokens = await ownerLoginResponse.Content.ReadFromJsonAsync<AccessTokenResponse>(TestContext.Current.CancellationToken);
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", ownerTokens!.AccessToken);
+
+        var createBoardResponse = await _client.PostAsJsonAsync("/api/boards", new { Name = "Test Board" }, TestContext.Current.CancellationToken);
+        var board = await createBoardResponse.Content.ReadFromJsonAsync<BoardResponse>(TestContext.Current.CancellationToken);
+        Assert.NotNull(board);
+
+        var nonMemberEmail = "nonmember@example.com";
+        var nonMemberPassword = "Test123!";
+        using (var scope = Factory.Services.CreateScope())
+        {
+            var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+            var nonMember = new ApplicationUser { UserName = nonMemberEmail, Email = nonMemberEmail, EmailConfirmed = true };
+            await userManager.CreateAsync(nonMember, nonMemberPassword);
+        }
+
+        var nonMemberLoginResponse = await _client.PostAsJsonAsync("/login", new { email = nonMemberEmail, password = nonMemberPassword }, TestContext.Current.CancellationToken);
+        var nonMemberTokens = await nonMemberLoginResponse.Content.ReadFromJsonAsync<AccessTokenResponse>(TestContext.Current.CancellationToken);
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", nonMemberTokens!.AccessToken);
+
+        // Act
+        var response = await _client.GetAsync($"/api/boards/{board.Id}", TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
 }
