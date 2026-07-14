@@ -8,15 +8,8 @@ using System.Net.Http.Json;
 
 namespace Kanban.API.IntegrationTests;
 
-public class AuthTests : IntegrationTestBase, IClassFixture<IntegrationTestWebAppFactory<Program>>
+public class AuthTests(IntegrationTestWebAppFactory<Program> factory) : IntegrationTestBase(factory), IClassFixture<IntegrationTestWebAppFactory<Program>>
 {
-    private readonly HttpClient _client;
-
-    public AuthTests(IntegrationTestWebAppFactory<Program> factory) : base(factory)
-    {
-        _client = factory.CreateClient();
-    }
-
     [Fact]
     public async Task Register_WithValidData_ReturnsOk()
     {
@@ -28,7 +21,7 @@ public class AuthTests : IntegrationTestBase, IClassFixture<IntegrationTestWebAp
         };
 
         // Act
-        var response = await _client.PostAsJsonAsync("/register", data, TestContext.Current.CancellationToken);
+        var response = await Client.PostAsJsonAsync("/register", data, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -55,7 +48,7 @@ public class AuthTests : IntegrationTestBase, IClassFixture<IntegrationTestWebAp
         };
 
         // Act
-        var response = await _client.PostAsJsonAsync("/login", data, TestContext.Current.CancellationToken);
+        var response = await Client.PostAsJsonAsync("/login", data, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -86,7 +79,7 @@ public class AuthTests : IntegrationTestBase, IClassFixture<IntegrationTestWebAp
         };
 
         // Act
-        var response = await _client.PostAsJsonAsync("/register", data, TestContext.Current.CancellationToken);
+        var response = await Client.PostAsJsonAsync("/register", data, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);

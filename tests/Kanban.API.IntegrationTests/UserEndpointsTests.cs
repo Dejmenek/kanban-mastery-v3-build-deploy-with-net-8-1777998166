@@ -9,15 +9,8 @@ using System.Net.Http.Json;
 
 namespace Kanban.API.IntegrationTests;
 
-public class UserEndpointsTests : IntegrationTestBase, IClassFixture<IntegrationTestWebAppFactory<Program>>
+public class UserEndpointsTests(IntegrationTestWebAppFactory<Program> factory) : IntegrationTestBase(factory), IClassFixture<IntegrationTestWebAppFactory<Program>>
 {
-    private readonly HttpClient _client;
-
-    public UserEndpointsTests(IntegrationTestWebAppFactory<Program> factory) : base(factory)
-    {
-        _client = factory.CreateClient();
-    }
-
     [Fact]
     public async Task GetCurrentUserProfile_WithValidToken_ReturnsOk()
     {
@@ -38,7 +31,7 @@ public class UserEndpointsTests : IntegrationTestBase, IClassFixture<Integration
         _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", tokens!.AccessToken);
 
         // Act
-        var response = await _client.GetAsync("/api/users/me", TestContext.Current.CancellationToken);
+        var response = await Client.GetAsync("/api/users/me", TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -54,7 +47,7 @@ public class UserEndpointsTests : IntegrationTestBase, IClassFixture<Integration
     public async Task GetCurrentUserProfile_WithInvalidToken_ReturnsUnauthorized()
     {
         // Act
-        var response = await _client.GetAsync("/api/users/me", TestContext.Current.CancellationToken);
+        var response = await Client.GetAsync("/api/users/me", TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
@@ -81,7 +74,7 @@ public class UserEndpointsTests : IntegrationTestBase, IClassFixture<Integration
         }
 
         // Act
-        var response = await _client.GetAsync("/api/users/me", TestContext.Current.CancellationToken);
+        var response = await Client.GetAsync("/api/users/me", TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
