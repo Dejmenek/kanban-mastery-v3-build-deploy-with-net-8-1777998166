@@ -1,12 +1,7 @@
-using Kanban.API.Data;
 using Kanban.API.DTOs.Boards;
 using Kanban.API.Models;
-using Microsoft.AspNetCore.Authentication.BearerToken;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
 using System.Net;
-using System.Net.Http.Headers;
 using System.Net.Http.Json;
 
 namespace Kanban.API.IntegrationTests;
@@ -17,21 +12,8 @@ public class BoardEndpointsTests(IntegrationTestWebAppFactory<Program> factory) 
     public async Task CreateBoard_WithValidRequest_CreatesBoardAndBoardMember()
     {
         // Arrange
-        var email = "test@example.com";
-        var userName = "test@example.com";
-        var password = "Test123!";
         var boardName = "Test Board";
-        ApplicationUser user;
-        using (var scope = Factory.Services.CreateScope())
-        {
-            var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-            user = new ApplicationUser { UserName = userName, Email = email, EmailConfirmed = true };
-            await userManager.CreateAsync(user, password);
-        }
-
-        var loginResponse = await _client.PostAsJsonAsync("/login", new { email, password }, TestContext.Current.CancellationToken);
-        var tokens = await loginResponse.Content.ReadFromJsonAsync<AccessTokenResponse>(TestContext.Current.CancellationToken);
-        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", tokens!.AccessToken);
+        var user = await CreateUserAndAuthenticateAsync("test@example.com", "Test123!");
 
         // Act
         var response = await Client.PostAsJsonAsync("/api/boards", new { Name = boardName }, TestContext.Current.CancellationToken);
@@ -42,12 +24,9 @@ public class BoardEndpointsTests(IntegrationTestWebAppFactory<Program> factory) 
         var content = await response.Content.ReadFromJsonAsync<BoardResponse>(TestContext.Current.CancellationToken);
         Assert.NotNull(content);
 
-        using var assertScope = Factory.Services.CreateScope();
-        var context = assertScope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-
-        var membership = await context.BoardsMemberships
+        var membership = await UseDbContextAsync(context => context.BoardsMemberships
             .Include(bm => bm.Board)
-            .FirstOrDefaultAsync(bm => bm.BoardId == content.Id && bm.MemberId == user.Id, TestContext.Current.CancellationToken);
+            .FirstOrDefaultAsync(bm => bm.BoardId == content.Id && bm.MemberId == user.Id, TestContext.Current.CancellationToken));
         Assert.NotNull(membership);
         Assert.Equal(boardName, membership.Board.Name);
         Assert.Equal(Role.Owner, membership.Role);
@@ -57,31 +36,11 @@ public class BoardEndpointsTests(IntegrationTestWebAppFactory<Program> factory) 
     public async Task AddMember_AsBoardOwner_AddsMemberAndReturnsCreated()
     {
         // Arrange
-        var ownerEmail = "owner@example.com";
-        var ownerPassword = "Test123!";
-        using (var scope = Factory.Services.CreateScope())
-        {
-            var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-            var owner = new ApplicationUser { UserName = ownerEmail, Email = ownerEmail, EmailConfirmed = true };
-            await userManager.CreateAsync(owner, ownerPassword);
-        }
-
-        var ownerLoginResponse = await _client.PostAsJsonAsync("/login", new { email = ownerEmail, password = ownerPassword }, TestContext.Current.CancellationToken);
-        var ownerTokens = await ownerLoginResponse.Content.ReadFromJsonAsync<AccessTokenResponse>(TestContext.Current.CancellationToken);
-        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", ownerTokens!.AccessToken);
-
-        var createBoardResponse = await _client.PostAsJsonAsync("/api/boards", new { Name = "Test Board" }, TestContext.Current.CancellationToken);
-        var board = await createBoardResponse.Content.ReadFromJsonAsync<BoardResponse>(TestContext.Current.CancellationToken);
-        Assert.NotNull(board);
+        var owner = await CreateUserAndAuthenticateAsync("owner@example.com", "Test123!");
+        var board = await UseDbContextAsync(context => BoardTestHelper.SeedBoardAsync(context, owner.Id));
 
         var memberEmail = "member@example.com";
-        ApplicationUser newMember;
-        using (var scope = Factory.Services.CreateScope())
-        {
-            var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-            newMember = new ApplicationUser { UserName = memberEmail, Email = memberEmail, EmailConfirmed = true };
-            await userManager.CreateAsync(newMember, "Test123!");
-        }
+        var newMember = await CreateUserAsync(memberEmail, "Test123!");
 
         // Act
         var response = await Client.PostAsJsonAsync(
@@ -98,10 +57,8 @@ public class BoardEndpointsTests(IntegrationTestWebAppFactory<Program> factory) 
         Assert.Equal(newMember.UserName, body.UserName);
         Assert.Equal(nameof(Role.Member), body.Role);
 
-        using var assertScope = Factory.Services.CreateScope();
-        var context = assertScope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        var membership = await context.BoardsMemberships
-            .FirstOrDefaultAsync(bm => bm.BoardId == board.Id && bm.MemberId == newMember.Id, TestContext.Current.CancellationToken);
+        var membership = await UseDbContextAsync(context => context.BoardsMemberships
+            .FirstOrDefaultAsync(bm => bm.BoardId == board.Id && bm.MemberId == newMember.Id, TestContext.Current.CancellationToken));
         Assert.NotNull(membership);
         Assert.Equal(Role.Member, membership.Role);
     }
@@ -110,43 +67,17 @@ public class BoardEndpointsTests(IntegrationTestWebAppFactory<Program> factory) 
     public async Task AddMember_AsNonOwner_ReturnsForbidden()
     {
         // Arrange
-        var ownerEmail = "owner@example.com";
-        var ownerPassword = "Test123!";
-        using (var scope = Factory.Services.CreateScope())
-        {
-            var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-            var owner = new ApplicationUser { UserName = ownerEmail, Email = ownerEmail, EmailConfirmed = true };
-            await userManager.CreateAsync(owner, ownerPassword);
-        }
-
-        var ownerLoginResponse = await _client.PostAsJsonAsync("/login", new { email = ownerEmail, password = ownerPassword }, TestContext.Current.CancellationToken);
-        var ownerTokens = await ownerLoginResponse.Content.ReadFromJsonAsync<AccessTokenResponse>(TestContext.Current.CancellationToken);
-        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", ownerTokens!.AccessToken);
-
-        var createBoardResponse = await _client.PostAsJsonAsync("/api/boards", new { Name = "Test Board" }, TestContext.Current.CancellationToken);
-        var board = await createBoardResponse.Content.ReadFromJsonAsync<BoardResponse>(TestContext.Current.CancellationToken);
-        Assert.NotNull(board);
+        var owner = await CreateUserAndAuthenticateAsync("owner@example.com", "Test123!");
+        var board = await UseDbContextAsync(context => BoardTestHelper.SeedBoardAsync(context, owner.Id));
 
         var nonOwnerEmail = "nonowner@example.com";
         var nonOwnerPassword = "Test123!";
-        using (var scope = Factory.Services.CreateScope())
-        {
-            var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-            var nonOwner = new ApplicationUser { UserName = nonOwnerEmail, Email = nonOwnerEmail, EmailConfirmed = true };
-            await userManager.CreateAsync(nonOwner, nonOwnerPassword);
-        }
+        await CreateUserAsync(nonOwnerEmail, nonOwnerPassword);
 
         var candidateEmail = "candidate@example.com";
-        using (var scope = Factory.Services.CreateScope())
-        {
-            var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-            var candidate = new ApplicationUser { UserName = candidateEmail, Email = candidateEmail, EmailConfirmed = true };
-            await userManager.CreateAsync(candidate, "Test123!");
-        }
+        await CreateUserAsync(candidateEmail, "Test123!");
 
-        var nonOwnerLoginResponse = await _client.PostAsJsonAsync("/login", new { email = nonOwnerEmail, password = nonOwnerPassword }, TestContext.Current.CancellationToken);
-        var nonOwnerTokens = await nonOwnerLoginResponse.Content.ReadFromJsonAsync<AccessTokenResponse>(TestContext.Current.CancellationToken);
-        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", nonOwnerTokens!.AccessToken);
+        await AuthenticateAsAsync(nonOwnerEmail, nonOwnerPassword);
 
         // Act
         var response = await Client.PostAsJsonAsync(
@@ -162,22 +93,8 @@ public class BoardEndpointsTests(IntegrationTestWebAppFactory<Program> factory) 
     public async Task AddMember_WithoutUserIdOrEmail_ReturnsBadRequest()
     {
         // Arrange
-        var ownerEmail = "owner@example.com";
-        var ownerPassword = "Test123!";
-        using (var scope = Factory.Services.CreateScope())
-        {
-            var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-            var owner = new ApplicationUser { UserName = ownerEmail, Email = ownerEmail, EmailConfirmed = true };
-            await userManager.CreateAsync(owner, ownerPassword);
-        }
-
-        var ownerLoginResponse = await _client.PostAsJsonAsync("/login", new { email = ownerEmail, password = ownerPassword }, TestContext.Current.CancellationToken);
-        var ownerTokens = await ownerLoginResponse.Content.ReadFromJsonAsync<AccessTokenResponse>(TestContext.Current.CancellationToken);
-        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", ownerTokens!.AccessToken);
-
-        var createBoardResponse = await _client.PostAsJsonAsync("/api/boards", new { Name = "Test Board" }, TestContext.Current.CancellationToken);
-        var board = await createBoardResponse.Content.ReadFromJsonAsync<BoardResponse>(TestContext.Current.CancellationToken);
-        Assert.NotNull(board);
+        var owner = await CreateUserAndAuthenticateAsync("owner@example.com", "Test123!");
+        var board = await UseDbContextAsync(context => BoardTestHelper.SeedBoardAsync(context, owner.Id));
 
         // Act
         var response = await Client.PostAsJsonAsync(
@@ -193,22 +110,8 @@ public class BoardEndpointsTests(IntegrationTestWebAppFactory<Program> factory) 
     public async Task AddMember_WithNonExistentUser_ReturnsNotFound()
     {
         // Arrange
-        var ownerEmail = "owner@example.com";
-        var ownerPassword = "Test123!";
-        using (var scope = Factory.Services.CreateScope())
-        {
-            var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-            var owner = new ApplicationUser { UserName = ownerEmail, Email = ownerEmail, EmailConfirmed = true };
-            await userManager.CreateAsync(owner, ownerPassword);
-        }
-
-        var ownerLoginResponse = await _client.PostAsJsonAsync("/login", new { email = ownerEmail, password = ownerPassword }, TestContext.Current.CancellationToken);
-        var ownerTokens = await ownerLoginResponse.Content.ReadFromJsonAsync<AccessTokenResponse>(TestContext.Current.CancellationToken);
-        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", ownerTokens!.AccessToken);
-
-        var createBoardResponse = await _client.PostAsJsonAsync("/api/boards", new { Name = "Test Board" }, TestContext.Current.CancellationToken);
-        var board = await createBoardResponse.Content.ReadFromJsonAsync<BoardResponse>(TestContext.Current.CancellationToken);
-        Assert.NotNull(board);
+        var owner = await CreateUserAndAuthenticateAsync("owner@example.com", "Test123!");
+        var board = await UseDbContextAsync(context => BoardTestHelper.SeedBoardAsync(context, owner.Id));
 
         // Act
         var response = await Client.PostAsJsonAsync(
@@ -224,36 +127,13 @@ public class BoardEndpointsTests(IntegrationTestWebAppFactory<Program> factory) 
     public async Task AddMember_WhenUserIsAlreadyAMember_ReturnsConflict()
     {
         // Arrange
-        var ownerEmail = "owner@example.com";
-        var ownerPassword = "Test123!";
-        using (var scope = Factory.Services.CreateScope())
-        {
-            var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-            var owner = new ApplicationUser { UserName = ownerEmail, Email = ownerEmail, EmailConfirmed = true };
-            await userManager.CreateAsync(owner, ownerPassword);
-        }
-
-        var ownerLoginResponse = await _client.PostAsJsonAsync("/login", new { email = ownerEmail, password = ownerPassword }, TestContext.Current.CancellationToken);
-        var ownerTokens = await ownerLoginResponse.Content.ReadFromJsonAsync<AccessTokenResponse>(TestContext.Current.CancellationToken);
-        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", ownerTokens!.AccessToken);
-
-        var createBoardResponse = await _client.PostAsJsonAsync("/api/boards", new { Name = "Test Board" }, TestContext.Current.CancellationToken);
-        var board = await createBoardResponse.Content.ReadFromJsonAsync<BoardResponse>(TestContext.Current.CancellationToken);
-        Assert.NotNull(board);
+        var owner = await CreateUserAndAuthenticateAsync("owner@example.com", "Test123!");
+        var board = await UseDbContextAsync(context => BoardTestHelper.SeedBoardAsync(context, owner.Id));
 
         var memberEmail = "member@example.com";
-        using (var scope = Factory.Services.CreateScope())
-        {
-            var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-            var existingMember = new ApplicationUser { UserName = memberEmail, Email = memberEmail, EmailConfirmed = true };
-            await userManager.CreateAsync(existingMember, "Test123!");
-        }
-
-        var firstResponse = await _client.PostAsJsonAsync(
-            $"/api/boards/{board.Id}/members",
-            new { Email = memberEmail },
-            TestContext.Current.CancellationToken);
-        Assert.Equal(HttpStatusCode.Created, firstResponse.StatusCode);
+        var member = await CreateUserAsync(memberEmail, "Test123!");
+        await UseDbContextAsync(context => BoardTestHelper.SeedBoardMemberAsync(
+            context, new BoardMember { BoardId = board.Id, MemberId = member.Id, Role = Role.Member }));
 
         // Act
         var response = await Client.PostAsJsonAsync(
@@ -262,43 +142,20 @@ public class BoardEndpointsTests(IntegrationTestWebAppFactory<Program> factory) 
             TestContext.Current.CancellationToken);
 
         // Assert
-        Assert.Equal(HttpStatusCode.Conflict, secondResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
     }
 
     [Fact]
     public async Task GetById_WhenOwnerRequestsBoard_ReturnsBoardDetails()
     {
         // Arrange
-        var ownerEmail = "owner@example.com";
-        var ownerPassword = "Test123!";
-        using (var scope = Factory.Services.CreateScope())
-        {
-            var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-            var owner = new ApplicationUser { UserName = ownerEmail, Email = ownerEmail, EmailConfirmed = true };
-            await userManager.CreateAsync(owner, ownerPassword);
-        }
+        var owner = await CreateUserAndAuthenticateAsync("owner@example.com", "Test123!");
+        var board = await UseDbContextAsync(context => BoardTestHelper.SeedBoardAsync(context, owner.Id));
 
-        var ownerLoginResponse = await _client.PostAsJsonAsync("/login", new { email = ownerEmail, password = ownerPassword }, TestContext.Current.CancellationToken);
-        var ownerTokens = await ownerLoginResponse.Content.ReadFromJsonAsync<AccessTokenResponse>(TestContext.Current.CancellationToken);
-        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", ownerTokens!.AccessToken);
-
-        var createBoardResponse = await _client.PostAsJsonAsync("/api/boards", new { Name = "Test Board" }, TestContext.Current.CancellationToken);
-        var board = await createBoardResponse.Content.ReadFromJsonAsync<BoardResponse>(TestContext.Current.CancellationToken);
-        Assert.NotNull(board);
-
-        Column column;
-        Card card;
-        using (var scope = Factory.Services.CreateScope())
-        {
-            var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-            column = new Column { BoardId = board.Id, Title = "To Do", Position = 0 };
-            context.Columns.Add(column);
-            await context.SaveChangesAsync(TestContext.Current.CancellationToken);
-
-            card = new Card { ColumnId = column.Id, Title = "Test Card", Position = 0 };
-            context.Cards.Add(card);
-            await context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        }
+        var column = await UseDbContextAsync(context => BoardTestHelper.SeedColumnAsync(
+            context, new Column { BoardId = board.Id, Title = "To Do", Position = 0 }));
+        var card = await UseDbContextAsync(context => BoardTestHelper.SeedCardAsync(
+            context, new Card { ColumnId = column.Id, Title = "Test Card", Position = 0 }));
 
         // Act
         var response = await Client.GetAsync($"/api/boards/{board.Id}", TestContext.Current.CancellationToken);
@@ -324,41 +181,16 @@ public class BoardEndpointsTests(IntegrationTestWebAppFactory<Program> factory) 
     public async Task GetById_WhenMemberRequestsBoard_ReturnsBoardDetails()
     {
         // Arrange
-        var ownerEmail = "owner@example.com";
-        var ownerPassword = "Test123!";
-        using (var scope = Factory.Services.CreateScope())
-        {
-            var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-            var owner = new ApplicationUser { UserName = ownerEmail, Email = ownerEmail, EmailConfirmed = true };
-            await userManager.CreateAsync(owner, ownerPassword);
-        }
-
-        var ownerLoginResponse = await _client.PostAsJsonAsync("/login", new { email = ownerEmail, password = ownerPassword }, TestContext.Current.CancellationToken);
-        var ownerTokens = await ownerLoginResponse.Content.ReadFromJsonAsync<AccessTokenResponse>(TestContext.Current.CancellationToken);
-        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", ownerTokens!.AccessToken);
-
-        var createBoardResponse = await _client.PostAsJsonAsync("/api/boards", new { Name = "Test Board" }, TestContext.Current.CancellationToken);
-        var board = await createBoardResponse.Content.ReadFromJsonAsync<BoardResponse>(TestContext.Current.CancellationToken);
-        Assert.NotNull(board);
+        var owner = await CreateUserAndAuthenticateAsync("owner@example.com", "Test123!");
+        var board = await UseDbContextAsync(context => BoardTestHelper.SeedBoardAsync(context, owner.Id));
 
         var memberEmail = "member@example.com";
         var memberPassword = "Test123!";
-        using (var scope = Factory.Services.CreateScope())
-        {
-            var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-            var member = new ApplicationUser { UserName = memberEmail, Email = memberEmail, EmailConfirmed = true };
-            await userManager.CreateAsync(member, memberPassword);
-        }
+        var member = await CreateUserAsync(memberEmail, memberPassword);
+        await UseDbContextAsync(context => BoardTestHelper.SeedBoardMemberAsync(
+            context, new BoardMember { BoardId = board.Id, MemberId = member.Id, Role = Role.Member }));
 
-        var addMemberResponse = await _client.PostAsJsonAsync(
-            $"/api/boards/{board.Id}/members",
-            new { Email = memberEmail },
-            TestContext.Current.CancellationToken);
-        Assert.Equal(HttpStatusCode.Created, addMemberResponse.StatusCode);
-
-        var memberLoginResponse = await _client.PostAsJsonAsync("/login", new { email = memberEmail, password = memberPassword }, TestContext.Current.CancellationToken);
-        var memberTokens = await memberLoginResponse.Content.ReadFromJsonAsync<AccessTokenResponse>(TestContext.Current.CancellationToken);
-        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", memberTokens!.AccessToken);
+        await AuthenticateAsAsync(memberEmail, memberPassword);
 
         // Act
         var response = await Client.GetAsync($"/api/boards/{board.Id}", TestContext.Current.CancellationToken);
@@ -376,35 +208,14 @@ public class BoardEndpointsTests(IntegrationTestWebAppFactory<Program> factory) 
     public async Task GetById_AsNonMember_ReturnsForbidden()
     {
         // Arrange
-        var ownerEmail = "owner@example.com";
-        var ownerPassword = "Test123!";
-        using (var scope = Factory.Services.CreateScope())
-        {
-            var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-            var owner = new ApplicationUser { UserName = ownerEmail, Email = ownerEmail, EmailConfirmed = true };
-            await userManager.CreateAsync(owner, ownerPassword);
-        }
-
-        var ownerLoginResponse = await _client.PostAsJsonAsync("/login", new { email = ownerEmail, password = ownerPassword }, TestContext.Current.CancellationToken);
-        var ownerTokens = await ownerLoginResponse.Content.ReadFromJsonAsync<AccessTokenResponse>(TestContext.Current.CancellationToken);
-        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", ownerTokens!.AccessToken);
-
-        var createBoardResponse = await _client.PostAsJsonAsync("/api/boards", new { Name = "Test Board" }, TestContext.Current.CancellationToken);
-        var board = await createBoardResponse.Content.ReadFromJsonAsync<BoardResponse>(TestContext.Current.CancellationToken);
-        Assert.NotNull(board);
+        var owner = await CreateUserAndAuthenticateAsync("owner@example.com", "Test123!");
+        var board = await UseDbContextAsync(context => BoardTestHelper.SeedBoardAsync(context, owner.Id));
 
         var nonMemberEmail = "nonmember@example.com";
         var nonMemberPassword = "Test123!";
-        using (var scope = Factory.Services.CreateScope())
-        {
-            var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-            var nonMember = new ApplicationUser { UserName = nonMemberEmail, Email = nonMemberEmail, EmailConfirmed = true };
-            await userManager.CreateAsync(nonMember, nonMemberPassword);
-        }
+        await CreateUserAsync(nonMemberEmail, nonMemberPassword);
 
-        var nonMemberLoginResponse = await _client.PostAsJsonAsync("/login", new { email = nonMemberEmail, password = nonMemberPassword }, TestContext.Current.CancellationToken);
-        var nonMemberTokens = await nonMemberLoginResponse.Content.ReadFromJsonAsync<AccessTokenResponse>(TestContext.Current.CancellationToken);
-        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", nonMemberTokens!.AccessToken);
+        await AuthenticateAsAsync(nonMemberEmail, nonMemberPassword);
 
         // Act
         var response = await Client.GetAsync($"/api/boards/{board.Id}", TestContext.Current.CancellationToken);

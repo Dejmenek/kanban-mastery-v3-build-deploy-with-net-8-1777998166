@@ -1,8 +1,5 @@
-using Kanban.API.Models;
 using Microsoft.AspNetCore.Authentication.BearerToken;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.DependencyInjection;
 using System.Net;
 using System.Net.Http.Json;
 
@@ -32,20 +29,10 @@ public class AuthTests(IntegrationTestWebAppFactory<Program> factory) : Integrat
     {
         // Arrange
         var email = "test@example.com";
-        var userName = "test@example.com";
         var password = "Test123!";
-        using (var scope = Factory.Services.CreateScope())
-        {
-            var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-            var user = new ApplicationUser { UserName = userName, Email = email, EmailConfirmed = true };
-            await userManager.CreateAsync(user, password);
-        }
+        await CreateUserAsync(email, password);
 
-        var data = new
-        {
-            email,
-            password
-        };
+        var data = new { email, password };
 
         // Act
         var response = await Client.PostAsJsonAsync("/login", data, TestContext.Current.CancellationToken);
@@ -63,20 +50,10 @@ public class AuthTests(IntegrationTestWebAppFactory<Program> factory) : Integrat
     {
         // Arrange
         var email = "test@example.com";
-        var userName = "test@example.com";
         var password = "Test123!";
-        using (var scope = Factory.Services.CreateScope())
-        {
-            var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-            var user = new ApplicationUser { UserName = userName, Email = email, EmailConfirmed = true };
-            await userManager.CreateAsync(user, password);
-        }
+        await CreateUserAsync(email, password);
 
-        var data = new
-        {
-            email,
-            password
-        };
+        var data = new { email, password };
 
         // Act
         var response = await Client.PostAsJsonAsync("/register", data, TestContext.Current.CancellationToken);
