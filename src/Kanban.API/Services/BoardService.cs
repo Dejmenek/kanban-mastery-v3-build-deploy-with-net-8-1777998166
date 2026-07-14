@@ -72,12 +72,6 @@ public class BoardService(ApplicationDbContext context) : IBoardService
         ]);
     }
 
-    public Task<Result<BoardResponse>> UpdateAsync(int boardId, UpdateBoardRequest request, string userId, CancellationToken cancellationToken = default)
-        => throw new NotImplementedException();
-
-    public Task<Result> DeleteAsync(int boardId, string userId, CancellationToken cancellationToken = default)
-        => throw new NotImplementedException();
-
     public async Task<Result<BoardMemberResponse>> AddMemberAsync(int boardId, AddBoardMemberRequest request, CancellationToken cancellationToken = default)
     {
         if (request.UserId is null && request.Email is null)
