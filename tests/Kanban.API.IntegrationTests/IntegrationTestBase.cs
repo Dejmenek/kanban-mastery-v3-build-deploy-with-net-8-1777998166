@@ -3,14 +3,10 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Kanban.API.IntegrationTests;
 
-public abstract class IntegrationTestBase : IAsyncLifetime
+public abstract class IntegrationTestBase(IntegrationTestWebAppFactory<Program> factory) : IAsyncLifetime
 {
-    protected readonly IntegrationTestWebAppFactory<Program> Factory;
-
-    protected IntegrationTestBase(IntegrationTestWebAppFactory<Program> factory)
-    {
-        Factory = factory;
-    }
+    protected readonly IntegrationTestWebAppFactory<Program> Factory = factory;
+    protected readonly HttpClient Client = factory.CreateClient();
 
     public async ValueTask InitializeAsync()
     {

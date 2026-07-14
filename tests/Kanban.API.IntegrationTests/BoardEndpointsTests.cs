@@ -11,15 +11,8 @@ using System.Net.Http.Json;
 
 namespace Kanban.API.IntegrationTests;
 
-public class BoardEndpointsTests : IntegrationTestBase, IClassFixture<IntegrationTestWebAppFactory<Program>>
+public class BoardEndpointsTests(IntegrationTestWebAppFactory<Program> factory) : IntegrationTestBase(factory), IClassFixture<IntegrationTestWebAppFactory<Program>>
 {
-    private readonly HttpClient _client;
-
-    public BoardEndpointsTests(IntegrationTestWebAppFactory<Program> factory) : base(factory)
-    {
-        _client = factory.CreateClient();
-    }
-
     [Fact]
     public async Task CreateBoard_WithValidRequest_CreatesBoardAndBoardMember()
     {
@@ -41,7 +34,7 @@ public class BoardEndpointsTests : IntegrationTestBase, IClassFixture<Integratio
         _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", tokens!.AccessToken);
 
         // Act
-        var response = await _client.PostAsJsonAsync("/api/boards", new { Name = boardName }, TestContext.Current.CancellationToken);
+        var response = await Client.PostAsJsonAsync("/api/boards", new { Name = boardName }, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
@@ -91,7 +84,7 @@ public class BoardEndpointsTests : IntegrationTestBase, IClassFixture<Integratio
         }
 
         // Act
-        var response = await _client.PostAsJsonAsync(
+        var response = await Client.PostAsJsonAsync(
             $"/api/boards/{board.Id}/members",
             new { Email = memberEmail },
             TestContext.Current.CancellationToken);
@@ -156,7 +149,7 @@ public class BoardEndpointsTests : IntegrationTestBase, IClassFixture<Integratio
         _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", nonOwnerTokens!.AccessToken);
 
         // Act
-        var response = await _client.PostAsJsonAsync(
+        var response = await Client.PostAsJsonAsync(
             $"/api/boards/{board.Id}/members",
             new { Email = candidateEmail },
             TestContext.Current.CancellationToken);
@@ -187,7 +180,7 @@ public class BoardEndpointsTests : IntegrationTestBase, IClassFixture<Integratio
         Assert.NotNull(board);
 
         // Act
-        var response = await _client.PostAsJsonAsync(
+        var response = await Client.PostAsJsonAsync(
             $"/api/boards/{board.Id}/members",
             new { },
             TestContext.Current.CancellationToken);
@@ -218,7 +211,7 @@ public class BoardEndpointsTests : IntegrationTestBase, IClassFixture<Integratio
         Assert.NotNull(board);
 
         // Act
-        var response = await _client.PostAsJsonAsync(
+        var response = await Client.PostAsJsonAsync(
             $"/api/boards/{board.Id}/members",
             new { Email = "doesnotexist@example.com" },
             TestContext.Current.CancellationToken);
@@ -263,7 +256,7 @@ public class BoardEndpointsTests : IntegrationTestBase, IClassFixture<Integratio
         Assert.Equal(HttpStatusCode.Created, firstResponse.StatusCode);
 
         // Act
-        var secondResponse = await _client.PostAsJsonAsync(
+        var response = await Client.PostAsJsonAsync(
             $"/api/boards/{board.Id}/members",
             new { Email = memberEmail },
             TestContext.Current.CancellationToken);
@@ -308,7 +301,7 @@ public class BoardEndpointsTests : IntegrationTestBase, IClassFixture<Integratio
         }
 
         // Act
-        var response = await _client.GetAsync($"/api/boards/{board.Id}", TestContext.Current.CancellationToken);
+        var response = await Client.GetAsync($"/api/boards/{board.Id}", TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -368,7 +361,7 @@ public class BoardEndpointsTests : IntegrationTestBase, IClassFixture<Integratio
         _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", memberTokens!.AccessToken);
 
         // Act
-        var response = await _client.GetAsync($"/api/boards/{board.Id}", TestContext.Current.CancellationToken);
+        var response = await Client.GetAsync($"/api/boards/{board.Id}", TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -414,7 +407,7 @@ public class BoardEndpointsTests : IntegrationTestBase, IClassFixture<Integratio
         _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", nonMemberTokens!.AccessToken);
 
         // Act
-        var response = await _client.GetAsync($"/api/boards/{board.Id}", TestContext.Current.CancellationToken);
+        var response = await Client.GetAsync($"/api/boards/{board.Id}", TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
