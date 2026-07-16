@@ -21,6 +21,7 @@ builder.Services.AddIdentityApiEndpoints<ApplicationUser>(options =>
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddScoped<IAuthorizationHandler, IsBoardOwnerHandler>();
 builder.Services.AddScoped<IAuthorizationHandler, IsBoardMemberHandler>();
+builder.Services.AddScoped<IRetryExecutor, DbUpdateRetryExecutor>();
 builder.Services.AddScoped<IBoardService, BoardService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IColumnService, ColumnService>();
