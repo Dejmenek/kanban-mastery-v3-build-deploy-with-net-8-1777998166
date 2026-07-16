@@ -61,9 +61,23 @@ public class ColumnService(ApplicationDbContext context, IRetryExecutor retryExe
         ));
     }
 
-    public Task<Result> DeleteAsync(int boardId, int columnId, CancellationToken cancellation = default)
+    public async Task<Result> DeleteAsync(int boardId, int columnId, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        try
+        {
+            var column = await context.Columns.FirstOrDefaultAsync(c => c.Id == columnId && c.BoardId == boardId, cancellationToken);
+
+            if (column is null) return Result.Failure(ColumnErrors.NotFound(columnId));
+
+            context.Columns.Remove(column);
+            await context.SaveChangesAsync(cancellationToken);
+
+            return Result.Success();
+        }
+        catch (DbUpdateException ex) when (IsForeignKeyConstraintViolation(ex))
+        {
+            return Result.Failure(ColumnErrors.HasCards(columnId));
+        }
     }
 
     public async Task<Result<ColumnResponse>> UpdateAsync(int boardId, int columnId, UpdateColumnRequest request, CancellationToken cancellationToken = default)
@@ -91,6 +105,9 @@ public class ColumnService(ApplicationDbContext context, IRetryExecutor retryExe
     private static bool IsPositionConflict(DbUpdateException ex) =>
         ex.InnerException is SqliteException sqliteEx && sqliteEx.SqliteErrorCode == 19 &&
         sqliteEx.Message.Contains("IX_Columns_BoardId_Position");
+
+    private static bool IsForeignKeyConstraintViolation(DbUpdateException ex) =>
+        ex.InnerException is SqliteException sqliteEx && (sqliteEx.SqliteErrorCode == 19 || sqliteEx.SqliteExtendedErrorCode == 787);
 
     private static int ResolveTargetPosition(int? requestedPosition, int existingCount)
     {

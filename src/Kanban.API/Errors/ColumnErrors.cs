@@ -12,4 +12,7 @@ public static class ColumnErrors
 
     public static Error NotFound(int columnId) =>
         Error.NotFound("Column.NotFound", $"Column with ID '{columnId}' was not found.");
+
+    public static Error HasCards(int columnId) =>
+        Error.Conflict("Column.HasCards", $"Column with ID '{columnId}' cannot be deleted because it contains cards. Please move or delete the cards first.");
 }
