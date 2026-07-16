@@ -1,3 +1,5 @@
+using Kanban.API.DTOs.Boards.Columns;
+
 namespace Kanban.API.DTOs.Boards;
 
 public record BoardDetailsResponse(
