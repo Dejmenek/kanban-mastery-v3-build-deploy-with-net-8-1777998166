@@ -44,10 +44,31 @@ public static class ColumnEndpoints
         return TypedResults.Created($"/api/boards/{boardId}/columns/{result.Value.Id}", result.Value);
     }
 
-    private static async Task<Results<NoContent, NotFound<string>, Conflict<string>, UnauthorizedHttpResult>> DeleteColumn(
-        int boardId, int columnId, IColumnService columnService, ClaimsPrincipal user, CancellationToken cancellationToken)
+    private static async Task<Results<NoContent, NotFound<string>, Conflict<string>, ProblemHttpResult, ForbidHttpResult>> DeleteColumn(
+        int boardId, int columnId, IColumnService columnService, IAuthorizationService authService,
+        ClaimsPrincipal user, CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        var authResult = await authService.AuthorizeAsync(user, boardId, "IsBoardMember");
+        if (!authResult.Succeeded)
+        {
+            return TypedResults.Forbid();
+        }
+
+        var result = await columnService.DeleteAsync(boardId, columnId, cancellationToken);
+        if (result.IsFailure)
+        {
+            return result.Error.Type switch
+            {
+                ErrorType.NotFound => TypedResults.NotFound(result.Error.Description),
+                ErrorType.Conflict => TypedResults.Conflict(result.Error.Description),
+                _ => TypedResults.Problem(
+                    detail: result.Error.Description,
+                    statusCode: StatusCodes.Status500InternalServerError,
+                    title: "Unhandled error type")
+            };
+        }
+
+        return TypedResults.NoContent();
     }
 
     private static async Task<Results<Ok<ColumnResponse>, NotFound<string>, BadRequest<string>, ForbidHttpResult>> UpdateColumn(
