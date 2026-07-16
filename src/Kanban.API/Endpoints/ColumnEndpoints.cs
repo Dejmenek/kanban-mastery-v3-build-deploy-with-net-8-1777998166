@@ -1,5 +1,7 @@
+using Kanban.API.Common;
 using Kanban.API.DTOs.Boards.Columns;
 using Kanban.API.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.HttpResults;
 using System.Security.Claims;
 
@@ -10,18 +12,36 @@ public static class ColumnEndpoints
     public static void MapColumnEndpoints(this IEndpointRouteBuilder boardsGroup)
     {
         var columns = boardsGroup.MapGroup("/{boardId:int}/columns")
-            .RequireAuthorization("IsBoardMember");
+            .RequireAuthorization();
 
         columns.MapPost("/", CreateColumn);
         columns.MapPut("/{columnId:int}", UpdateColumn);
         columns.MapDelete("/{columnId:int}", DeleteColumn);
     }
 
-    private static async Task<Results<Created<ColumnResponse>, BadRequest<string>, Conflict<string>, NotFound<string>, UnauthorizedHttpResult>> CreateColumn(
+    private static async Task<Results<Created<ColumnResponse>, BadRequest<string>, Conflict<string>, NotFound<string>, ForbidHttpResult, UnauthorizedHttpResult>> CreateColumn(
         int boardId, CreateColumnRequest request, IColumnService columnService,
-        ClaimsPrincipal user, CancellationToken cancellationToken)
+        IAuthorizationService authService, ClaimsPrincipal user, CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        var authResult = await authService.AuthorizeAsync(user, boardId, "IsBoardMember");
+        if (!authResult.Succeeded)
+        {
+            return TypedResults.Forbid();
+        }
+
+        var result = await columnService.CreateAsync(boardId, request, cancellationToken);
+        if (result.IsFailure)
+        {
+            return result.Error.Type switch
+            {
+                ErrorType.Validation => TypedResults.BadRequest(result.Error.Description),
+                ErrorType.Conflict => TypedResults.Conflict(result.Error.Description),
+                ErrorType.NotFound => TypedResults.NotFound(result.Error.Description),
+                _ => TypedResults.BadRequest(result.Error.Description)
+            };
+        }
+
+        return TypedResults.Created($"/api/boards/{boardId}/columns/{result.Value.Id}", result.Value);
     }
 
     private static async Task<Results<NoContent, NotFound<string>, Conflict<string>, UnauthorizedHttpResult>> DeleteColumn(
