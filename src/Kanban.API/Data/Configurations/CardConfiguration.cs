@@ -20,6 +20,6 @@ internal class CardConfiguration : IEntityTypeConfiguration<Card>
         builder.HasOne(x => x.Column)
             .WithMany(x => x.Cards)
             .HasForeignKey(x => x.ColumnId)
-            .OnDelete(DeleteBehavior.Cascade);
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }
