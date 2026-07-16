@@ -383,4 +383,41 @@ public class ColumnServiceTests(IntegrationTestWebAppFactory<Program> factory)
         Assert.Equal(request.Description, persisted.Description);
         Assert.Equal(1, persisted.Position);
     }
+
+    [Fact]
+    public async Task DeleteAsync_WithNonExistentColumn_ReturnsNotFoundFailure()
+    {
+        // Arrange
+        const int nonExistentColumnId = 999;
+        var owner = await CreateUserAsync("owner@example.com", "Test123!");
+        var board = await UseDbContextAsync(context => BoardTestHelper.SeedBoardAsync(context, owner.Id));
+
+        // Act
+        var result = await UseColumnServiceAsync(service =>
+            service.DeleteAsync(board.Id, nonExistentColumnId, TestContext.Current.CancellationToken));
+
+        // Assert
+        Assert.True(result.IsFailure);
+        Assert.Equal(ColumnErrors.NotFound(nonExistentColumnId), result.Error);
+    }
+
+    [Fact]
+    public async Task DeleteAsync_WithExistingColumn_DeletesColumnAndPersists()
+    {
+        // Arrange
+        var owner = await CreateUserAsync("owner@example.com", "Test123!");
+        var board = await UseDbContextAsync(context => BoardTestHelper.SeedBoardAsync(context, owner.Id));
+        var column = await UseDbContextAsync(context =>
+            BoardTestHelper.SeedColumnAsync(context, new Column { BoardId = board.Id, Title = "Original", Position = 1 }));
+
+        // Act
+        var result = await UseColumnServiceAsync(service =>
+            service.DeleteAsync(board.Id, column.Id, TestContext.Current.CancellationToken));
+
+        // Assert
+        Assert.True(result.IsSuccess);
+
+        var columnCount = await UseDbContextAsync(context => context.Columns.CountAsync(c => c.BoardId == board.Id, TestContext.Current.CancellationToken));
+        Assert.Equal(0, columnCount);
+    }
 }
