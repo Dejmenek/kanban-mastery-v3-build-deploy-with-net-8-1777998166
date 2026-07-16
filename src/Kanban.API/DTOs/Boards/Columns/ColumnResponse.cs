@@ -1,4 +1,4 @@
-namespace Kanban.API.DTOs.Boards;
+namespace Kanban.API.DTOs.Boards.Columns;
 
 public record ColumnResponse(
     int Id,
