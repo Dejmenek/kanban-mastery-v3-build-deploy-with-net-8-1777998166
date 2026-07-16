@@ -11,13 +11,15 @@ public static class BoardEndpoints
 {
     public static void MapBoardEndpoints(this IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/api/boards")
+        var boards = app.MapGroup("/api/boards")
             .RequireAuthorization();
 
-        group.MapGet("/", GetAllForUser);
-        group.MapPost("/", CreateBoard);
-        group.MapPost("/{boardId:int}/members", AddMember);
-        group.MapGet("/{boardId:int}", GetById);
+        boards.MapGet("/", GetAllForUser);
+        boards.MapPost("/", CreateBoard);
+        boards.MapPost("/{boardId:int}/members", AddMember);
+        boards.MapGet("/{boardId:int}", GetById);
+
+        boards.MapColumnEndpoints();
     }
 
     private static async Task<Results<Ok<BoardDetailsResponse>, NotFound<string>, ForbidHttpResult, UnauthorizedHttpResult>> GetById(
