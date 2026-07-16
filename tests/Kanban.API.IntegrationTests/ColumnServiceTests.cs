@@ -314,4 +314,73 @@ public class ColumnServiceTests(IntegrationTestWebAppFactory<Program> factory)
         var columnCount = await UseDbContextAsync(context => context.Columns.CountAsync(c => c.BoardId == board.Id, TestContext.Current.CancellationToken));
         Assert.Equal(0, columnCount);
     }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public async Task UpdateAsync_WithInvalidTitle_ReturnsValidationFailureAndPersistsNothing(string? title)
+    {
+        // Arrange
+        var owner = await CreateUserAsync("owner@example.com", "Test123!");
+        var board = await UseDbContextAsync(context => BoardTestHelper.SeedBoardAsync(context, owner.Id));
+        var column = await UseDbContextAsync(context =>
+            BoardTestHelper.SeedColumnAsync(context, new Column { BoardId = board.Id, Title = "Original", Position = 1 }));
+
+        // Act
+        var result = await UseColumnServiceAsync(service =>
+            service.UpdateAsync(board.Id, column.Id, new UpdateColumnRequest(title!, null), TestContext.Current.CancellationToken));
+
+        // Assert
+        Assert.True(result.IsFailure);
+        Assert.Equal(ColumnErrors.InvalidTitle, result.Error);
+
+        var persisted = await UseDbContextAsync(context => context.Columns.SingleAsync(c => c.Id == column.Id, TestContext.Current.CancellationToken));
+        Assert.Equal("Original", persisted.Title);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_WithNonExistentColumn_ReturnsNotFoundFailure()
+    {
+        // Arrange
+        const int nonExistentColumnId = 999;
+        var owner = await CreateUserAsync("owner@example.com", "Test123!");
+        var board = await UseDbContextAsync(context => BoardTestHelper.SeedBoardAsync(context, owner.Id));
+
+        // Act
+        var result = await UseColumnServiceAsync(service =>
+            service.UpdateAsync(board.Id, nonExistentColumnId, new UpdateColumnRequest("New Title", null), TestContext.Current.CancellationToken));
+
+        // Assert
+        Assert.True(result.IsFailure);
+        Assert.Equal(ColumnErrors.NotFound(nonExistentColumnId), result.Error);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_WithValidRequest_UpdatesColumnAndReturnsSuccess()
+    {
+        // Arrange
+        var owner = await CreateUserAsync("owner@example.com", "Test123!");
+        var board = await UseDbContextAsync(context => BoardTestHelper.SeedBoardAsync(context, owner.Id));
+        var column = await UseDbContextAsync(context =>
+            BoardTestHelper.SeedColumnAsync(context, new Column { BoardId = board.Id, Title = "Original", Position = 1 }));
+
+        var request = new UpdateColumnRequest("Updated Title", "Updated description");
+
+        // Act
+        var result = await UseColumnServiceAsync(service =>
+            service.UpdateAsync(board.Id, column.Id, request, TestContext.Current.CancellationToken));
+
+        // Assert
+        Assert.True(result.IsSuccess);
+        Assert.Equal(request.Title, result.Value.Title);
+        Assert.Equal(request.Description, result.Value.Description);
+        Assert.Equal(1, result.Value.Position);
+        Assert.Empty(result.Value.Cards);
+
+        var persisted = await UseDbContextAsync(context => context.Columns.SingleAsync(c => c.Id == column.Id, TestContext.Current.CancellationToken));
+        Assert.Equal(request.Title, persisted.Title);
+        Assert.Equal(request.Description, persisted.Description);
+        Assert.Equal(1, persisted.Position);
+    }
 }
