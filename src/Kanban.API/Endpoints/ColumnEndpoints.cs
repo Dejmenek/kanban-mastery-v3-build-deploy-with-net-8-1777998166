@@ -19,7 +19,7 @@ public static class ColumnEndpoints
         columns.MapDelete("/{columnId:int}", DeleteColumn);
     }
 
-    private static async Task<Results<Created<ColumnResponse>, BadRequest<string>, Conflict<string>, NotFound<string>, ForbidHttpResult, UnauthorizedHttpResult>> CreateColumn(
+    private static async Task<Results<Created<ColumnResponse>, BadRequest<string>, Conflict<string>, NotFound<string>, ForbidHttpResult>> CreateColumn(
         int boardId, CreateColumnRequest request, IColumnService columnService,
         IAuthorizationService authService, ClaimsPrincipal user, CancellationToken cancellationToken)
     {
@@ -50,10 +50,27 @@ public static class ColumnEndpoints
         throw new NotImplementedException();
     }
 
-    private static async Task<Results<Ok<ColumnResponse>, NotFound<string>, BadRequest<string>, Conflict<string>, UnauthorizedHttpResult>> UpdateColumn(
+    private static async Task<Results<Ok<ColumnResponse>, NotFound<string>, BadRequest<string>, ForbidHttpResult>> UpdateColumn(
         int boardId, int columnId, UpdateColumnRequest request, IColumnService columnService,
-        ClaimsPrincipal user, CancellationToken cancellationToken)
+        IAuthorizationService authService, ClaimsPrincipal user, CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        var authResult = await authService.AuthorizeAsync(user, boardId, "IsBoardMember");
+        if (!authResult.Succeeded)
+        {
+            return TypedResults.Forbid();
+        }
+
+        var result = await columnService.UpdateAsync(boardId, columnId, request, cancellationToken);
+        if (result.IsFailure)
+        {
+            return result.Error.Type switch
+            {
+                ErrorType.Validation => TypedResults.BadRequest(result.Error.Description),
+                ErrorType.NotFound => TypedResults.NotFound(result.Error.Description),
+                _ => TypedResults.BadRequest(result.Error.Description)
+            };
+        }
+
+        return TypedResults.Ok(result.Value);
     }
 }
