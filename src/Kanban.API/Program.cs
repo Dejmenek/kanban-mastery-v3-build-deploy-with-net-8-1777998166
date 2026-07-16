@@ -23,6 +23,7 @@ builder.Services.AddScoped<IAuthorizationHandler, IsBoardOwnerHandler>();
 builder.Services.AddScoped<IAuthorizationHandler, IsBoardMemberHandler>();
 builder.Services.AddScoped<IBoardService, BoardService>();
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IColumnService, ColumnService>();
 builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("IsBoardOwner", policy =>
