@@ -1,5 +1,6 @@
 using Kanban.API.Data;
 using Kanban.API.Models;
+using Kanban.API.Services;
 using Microsoft.AspNetCore.Authentication.BearerToken;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
@@ -58,5 +59,12 @@ public abstract class IntegrationTestBase(IntegrationTestWebAppFactory<Program> 
         using var scope = Factory.Services.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         return await action(context);
+    }
+
+    protected async Task<TResult> UseColumnServiceAsync<TResult>(Func<IColumnService, Task<TResult>> action)
+    {
+        using var scope = Factory.Services.CreateScope();
+        var service = scope.ServiceProvider.GetRequiredService<IColumnService>();
+        return await action(service);
     }
 }
