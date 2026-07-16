@@ -167,4 +167,62 @@ public class ColumnEndpointsTests(IntegrationTestWebAppFactory<Program> factory)
         Assert.Equal(request.Title, body.Title);
         Assert.Equal(request.Description, body.Description);
     }
+
+    [Fact]
+    public async Task DeleteColumn_AsNonMember_ReturnsForbidden()
+    {
+        // Arrange
+        var owner = await CreateUserAndAuthenticateAsync("owner@example.com", "Test123!");
+        var board = await UseDbContextAsync(context => BoardTestHelper.SeedBoardAsync(context, owner.Id));
+        var column = await UseDbContextAsync(context =>
+            BoardTestHelper.SeedColumnAsync(context, new Column { BoardId = board.Id, Title = "Original", Position = 1 }));
+
+        var nonMemberEmail = "nonmember@example.com";
+        var nonMemberPassword = "Test123!";
+        await CreateUserAsync(nonMemberEmail, nonMemberPassword);
+        await AuthenticateAsAsync(nonMemberEmail, nonMemberPassword);
+
+        // Act
+        var response = await Client.DeleteAsync(
+            $"/api/boards/{board.Id}/columns/{column.Id}",
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task DeleteColumn_WithNonExistentColumn_ReturnsNotFound()
+    {
+        // Arrange
+        const int nonExistentColumnId = 999;
+        var owner = await CreateUserAndAuthenticateAsync("owner@example.com", "Test123!");
+        var board = await UseDbContextAsync(context => BoardTestHelper.SeedBoardAsync(context, owner.Id));
+
+        // Act
+        var response = await Client.DeleteAsync(
+            $"/api/boards/{board.Id}/columns/{nonExistentColumnId}",
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task DeleteColumn_AsMember_ReturnsNoContent()
+    {
+        // Arrange
+        var owner = await CreateUserAndAuthenticateAsync("owner@example.com", "Test123!");
+        var board = await UseDbContextAsync(context => BoardTestHelper.SeedBoardAsync(context, owner.Id));
+        var column = await UseDbContextAsync(context =>
+            BoardTestHelper.SeedColumnAsync(context, new Column { BoardId = board.Id, Title = "Original", Position = 1 }));
+
+        // Act
+        var response = await Client.DeleteAsync(
+            $"/api/boards/{board.Id}/columns/{column.Id}",
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+    }
 }
