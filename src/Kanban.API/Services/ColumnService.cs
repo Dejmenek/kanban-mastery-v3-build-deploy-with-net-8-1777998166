@@ -66,9 +66,26 @@ public class ColumnService(ApplicationDbContext context, IRetryExecutor retryExe
         throw new NotImplementedException();
     }
 
-    public Task<Result<ColumnResponse>> UpdateAsync(int boardId, int columnId, UpdateColumnRequest request, CancellationToken cancellationToken = default)
+    public async Task<Result<ColumnResponse>> UpdateAsync(int boardId, int columnId, UpdateColumnRequest request, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        if (string.IsNullOrWhiteSpace(request.Title)) return Result.Failure<ColumnResponse>(ColumnErrors.InvalidTitle);
+
+        var column = await context.Columns.FirstOrDefaultAsync(c => c.Id == columnId && c.BoardId == boardId, cancellationToken);
+
+        if (column is null) return Result.Failure<ColumnResponse>(ColumnErrors.NotFound(columnId));
+
+        column.Title = request.Title;
+        column.Description = request.Description;
+        await context.SaveChangesAsync(cancellationToken);
+
+        return Result.Success(new ColumnResponse
+        (
+            column.Id,
+            column.Title,
+            column.Description,
+            column.Position,
+            []
+        ));
     }
 
     private static bool IsPositionConflict(DbUpdateException ex) =>

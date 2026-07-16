@@ -9,4 +9,7 @@ public static class ColumnErrors
 
     public static Error InvalidTitle =>
         Error.Validation("Column.InvalidTitle", "Column title cannot be null or empty.");
+
+    public static Error NotFound(int columnId) =>
+        Error.NotFound("Column.NotFound", $"Column with ID '{columnId}' was not found.");
 }
