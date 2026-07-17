@@ -1,7 +1,7 @@
+using Kanban.API.Common;
 using Kanban.API.Data;
 using Kanban.API.DTOs.Users;
 using Kanban.API.Services;
-using Microsoft.AspNetCore.Http.HttpResults;
 using System.Security.Claims;
 
 namespace Kanban.API.Endpoints;
@@ -13,10 +13,13 @@ public static class UserEndpoints
         var group = app.MapGroup("/api/users");
 
         group.MapGet("/me", GetCurrentUserProfile)
-            .RequireAuthorization();
+            .RequireAuthorization()
+            .Produces<CurrentUserProfileResponse>(StatusCodes.Status200OK)
+            .Produces(StatusCodes.Status401Unauthorized)
+            .Produces<string>(StatusCodes.Status404NotFound);
     }
 
-    private static async Task<Results<Ok<CurrentUserProfileResponse>, NotFound, UnauthorizedHttpResult>> GetCurrentUserProfile(
+    private static async Task<IResult> GetCurrentUserProfile(
         ClaimsPrincipal user, ApplicationDbContext db, IUserService userService, CancellationToken cancellationToken)
     {
         var userId = user.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -26,6 +29,6 @@ public static class UserEndpoints
 
         return result.IsSuccess
             ? TypedResults.Ok(result.Value)
-            : TypedResults.NotFound();
+            : result.Error.ToTypedResult();
     }
 }

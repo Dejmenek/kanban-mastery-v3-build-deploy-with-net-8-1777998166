@@ -14,12 +14,28 @@ public static class ColumnEndpoints
         var columns = boardsGroup.MapGroup("/{boardId:int}/columns")
             .RequireAuthorization();
 
-        columns.MapPost("/", CreateColumn);
-        columns.MapPut("/{columnId:int}", UpdateColumn);
-        columns.MapDelete("/{columnId:int}", DeleteColumn);
+        columns.MapPost("/", CreateColumn)
+            .Produces<ColumnResponse>(StatusCodes.Status201Created)
+            .Produces(StatusCodes.Status403Forbidden)
+            .Produces<string>(StatusCodes.Status400BadRequest)
+            .Produces<string>(StatusCodes.Status404NotFound)
+            .Produces<string>(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status500InternalServerError);
+        columns.MapPut("/{columnId:int}", UpdateColumn)
+            .Produces<ColumnResponse>(StatusCodes.Status200OK)
+            .Produces(StatusCodes.Status403Forbidden)
+            .Produces<string>(StatusCodes.Status400BadRequest)
+            .Produces<string>(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status500InternalServerError);
+        columns.MapDelete("/{columnId:int}", DeleteColumn)
+            .Produces(StatusCodes.Status204NoContent)
+            .Produces(StatusCodes.Status403Forbidden)
+            .Produces<string>(StatusCodes.Status404NotFound)
+            .Produces<string>(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status500InternalServerError);
     }
 
-    private static async Task<Results<Created<ColumnResponse>, BadRequest<string>, Conflict<string>, NotFound<string>, ForbidHttpResult>> CreateColumn(
+    private static async Task<IResult> CreateColumn(
         int boardId, CreateColumnRequest request, IColumnService columnService,
         IAuthorizationService authService, ClaimsPrincipal user, CancellationToken cancellationToken)
     {
@@ -32,19 +48,13 @@ public static class ColumnEndpoints
         var result = await columnService.CreateAsync(boardId, request, cancellationToken);
         if (result.IsFailure)
         {
-            return result.Error.Type switch
-            {
-                ErrorType.Validation => TypedResults.BadRequest(result.Error.Description),
-                ErrorType.Conflict => TypedResults.Conflict(result.Error.Description),
-                ErrorType.NotFound => TypedResults.NotFound(result.Error.Description),
-                _ => TypedResults.BadRequest(result.Error.Description)
-            };
+            return result.Error.ToTypedResult();
         }
 
         return TypedResults.Created($"/api/boards/{boardId}/columns/{result.Value.Id}", result.Value);
     }
 
-    private static async Task<Results<NoContent, NotFound<string>, Conflict<string>, ProblemHttpResult, ForbidHttpResult>> DeleteColumn(
+    private static async Task<IResult> DeleteColumn(
         int boardId, int columnId, IColumnService columnService, IAuthorizationService authService,
         ClaimsPrincipal user, CancellationToken cancellationToken)
     {
@@ -57,21 +67,13 @@ public static class ColumnEndpoints
         var result = await columnService.DeleteAsync(boardId, columnId, cancellationToken);
         if (result.IsFailure)
         {
-            return result.Error.Type switch
-            {
-                ErrorType.NotFound => TypedResults.NotFound(result.Error.Description),
-                ErrorType.Conflict => TypedResults.Conflict(result.Error.Description),
-                _ => TypedResults.Problem(
-                    detail: result.Error.Description,
-                    statusCode: StatusCodes.Status500InternalServerError,
-                    title: "Unhandled error type")
-            };
+            return result.Error.ToTypedResult();
         }
 
         return TypedResults.NoContent();
     }
 
-    private static async Task<Results<Ok<ColumnResponse>, NotFound<string>, BadRequest<string>, ForbidHttpResult>> UpdateColumn(
+    private static async Task<IResult> UpdateColumn(
         int boardId, int columnId, UpdateColumnRequest request, IColumnService columnService,
         IAuthorizationService authService, ClaimsPrincipal user, CancellationToken cancellationToken)
     {
@@ -84,12 +86,7 @@ public static class ColumnEndpoints
         var result = await columnService.UpdateAsync(boardId, columnId, request, cancellationToken);
         if (result.IsFailure)
         {
-            return result.Error.Type switch
-            {
-                ErrorType.Validation => TypedResults.BadRequest(result.Error.Description),
-                ErrorType.NotFound => TypedResults.NotFound(result.Error.Description),
-                _ => TypedResults.BadRequest(result.Error.Description)
-            };
+            return result.Error.ToTypedResult();
         }
 
         return TypedResults.Ok(result.Value);
