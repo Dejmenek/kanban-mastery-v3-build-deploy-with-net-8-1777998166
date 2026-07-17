@@ -16,13 +16,23 @@ public static class BoardEndpoints
 
         boards.MapGet("/", GetAllForUser);
         boards.MapPost("/", CreateBoard);
-        boards.MapPost("/{boardId:int}/members", AddMember);
-        boards.MapGet("/{boardId:int}", GetById);
+        boards.MapPost("/{boardId:int}/members", AddMember)
+            .Produces<BoardMemberResponse>(StatusCodes.Status201Created)
+            .Produces(StatusCodes.Status401Unauthorized)
+            .Produces(StatusCodes.Status403Forbidden)
+            .Produces<string>(StatusCodes.Status400BadRequest)
+            .Produces<string>(StatusCodes.Status404NotFound)
+            .Produces<string>(StatusCodes.Status409Conflict);
+        boards.MapGet("/{boardId:int}", GetById)
+            .Produces<BoardDetailsResponse>(StatusCodes.Status200OK)
+            .Produces(StatusCodes.Status401Unauthorized)
+            .Produces(StatusCodes.Status403Forbidden)
+            .Produces<string>(StatusCodes.Status404NotFound);
 
         boards.MapColumnEndpoints();
     }
 
-    private static async Task<Results<Ok<BoardDetailsResponse>, NotFound<string>, ForbidHttpResult, UnauthorizedHttpResult>> GetById(
+    private static async Task<IResult> GetById(
         int boardId, IBoardService boardService, ClaimsPrincipal user,
         IAuthorizationService authService, CancellationToken cancellationToken)
     {
@@ -41,7 +51,7 @@ public static class BoardEndpoints
         var result = await boardService.GetByIdAsync(boardId, cancellationToken);
         if (result.IsFailure)
         {
-            return TypedResults.NotFound(result.Error.Description);
+            return result.Error.ToTypedResult();
         }
 
         return TypedResults.Ok(result.Value);
@@ -74,7 +84,7 @@ public static class BoardEndpoints
         return TypedResults.Created<BoardResponse>($"/api/boards/{result.Value.Id}", result.Value);
     }
 
-    private static async Task<Results<Created<BoardMemberResponse>, BadRequest<string>, NotFound<string>, Conflict<string>, ForbidHttpResult, UnauthorizedHttpResult>> AddMember(
+    private static async Task<IResult> AddMember(
         int boardId,
         AddBoardMemberRequest request,
         IAuthorizationService authService,
@@ -95,12 +105,7 @@ public static class BoardEndpoints
         var result = await boardService.AddMemberAsync(boardId, request, cancellationToken);
         if (result.IsFailure)
         {
-            return result.Error.Type switch
-            {
-                ErrorType.NotFound => TypedResults.NotFound(result.Error.Description),
-                ErrorType.Conflict => TypedResults.Conflict(result.Error.Description),
-                _ => TypedResults.BadRequest(result.Error.Description)
-            };
+            return result.Error.ToTypedResult();
         }
 
         return TypedResults.Created<BoardMemberResponse>($"/api/boards/{boardId}/members/{result.Value.MemberId}", result.Value);
