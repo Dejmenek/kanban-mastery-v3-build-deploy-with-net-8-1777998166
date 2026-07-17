@@ -225,4 +225,24 @@ public class ColumnEndpointsTests(IntegrationTestWebAppFactory<Program> factory)
         // Assert
         Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
     }
+
+    [Fact]
+    public async Task DeleteColumn_WithCards_ReturnsConflict()
+    {
+        // Arrange
+        var owner = await CreateUserAndAuthenticateAsync("owner@example.com", "Test123!");
+        var board = await UseDbContextAsync(context => BoardTestHelper.SeedBoardAsync(context, owner.Id));
+        var column = await UseDbContextAsync(context =>
+            BoardTestHelper.SeedColumnAsync(context, new Column { BoardId = board.Id, Title = "Original", Position = 1 }));
+        await UseDbContextAsync(context =>
+            BoardTestHelper.SeedCardAsync(context, new Card { ColumnId = column.Id, Title = "A card", Position = 1 }));
+
+        // Act
+        var response = await Client.DeleteAsync(
+            $"/api/boards/{board.Id}/columns/{column.Id}",
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+    }
 }
