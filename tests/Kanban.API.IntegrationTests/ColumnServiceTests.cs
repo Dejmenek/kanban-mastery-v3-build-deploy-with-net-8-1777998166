@@ -1,6 +1,8 @@
+using Kanban.API.Common;
 using Kanban.API.DTOs.Boards.Columns;
 using Kanban.API.Errors;
 using Kanban.API.Models;
+using Kanban.API.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace Kanban.API.IntegrationTests;
@@ -8,6 +10,14 @@ namespace Kanban.API.IntegrationTests;
 public class ColumnServiceTests(IntegrationTestWebAppFactory<Program> factory)
     : IntegrationTestBase(factory), IClassFixture<IntegrationTestWebAppFactory<Program>>
 {
+    private sealed class AlwaysExhaustedRetryExecutor : IRetryExecutor
+    {
+        public Task<Result<T>> ExecuteAsync<T>(
+            int maxAttempts, Func<Task<Result<T>>> operation, Func<DbUpdateException, bool> isRetryable,
+            Func<Result<T>> onExhausted, CancellationToken cancellationToken)
+            => Task.FromResult(onExhausted());
+    }
+
     [Fact]
     public async Task CreateAsync_OnEmptyBoard_CreatesColumnAtPositionOne()
     {
@@ -416,6 +426,27 @@ public class ColumnServiceTests(IntegrationTestWebAppFactory<Program> factory)
 
         // Assert
         Assert.True(result.IsSuccess);
+
+        var columnCount = await UseDbContextAsync(context => context.Columns.CountAsync(c => c.BoardId == board.Id, TestContext.Current.CancellationToken));
+        Assert.Equal(0, columnCount);
+    }
+    [Fact]
+    public async Task CreateAsync_WhenRetriesExhausted_ReturnsPositionConflictFailureAndPersistsNothing()
+    {
+        // Arrange
+        var owner = await CreateUserAsync("owner@example.com", "Test123!");
+        var board = await UseDbContextAsync(context => BoardTestHelper.SeedBoardAsync(context, owner.Id));
+
+        // Act
+        var result = await UseDbContextAsync(context =>
+        {
+            var service = new ColumnService(context, new AlwaysExhaustedRetryExecutor());
+            return service.CreateAsync(board.Id, new CreateColumnRequest("New", null, null), TestContext.Current.CancellationToken);
+        });
+
+        // Assert
+        Assert.True(result.IsFailure);
+        Assert.Equal(ColumnErrors.PositionConflict(board.Id), result.Error);
 
         var columnCount = await UseDbContextAsync(context => context.Columns.CountAsync(c => c.BoardId == board.Id, TestContext.Current.CancellationToken));
         Assert.Equal(0, columnCount);
