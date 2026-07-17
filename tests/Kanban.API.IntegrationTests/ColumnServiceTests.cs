@@ -430,6 +430,30 @@ public class ColumnServiceTests(IntegrationTestWebAppFactory<Program> factory)
         var columnCount = await UseDbContextAsync(context => context.Columns.CountAsync(c => c.BoardId == board.Id, TestContext.Current.CancellationToken));
         Assert.Equal(0, columnCount);
     }
+
+    [Fact]
+    public async Task DeleteAsync_WithCards_ReturnsHasCardsFailure()
+    {
+        // Arrange
+        var owner = await CreateUserAsync("owner@example.com", "Test123!");
+        var board = await UseDbContextAsync(context => BoardTestHelper.SeedBoardAsync(context, owner.Id));
+        var column = await UseDbContextAsync(context =>
+            BoardTestHelper.SeedColumnAsync(context, new Column { BoardId = board.Id, Title = "Original", Position = 1 }));
+        await UseDbContextAsync(context =>
+            BoardTestHelper.SeedCardAsync(context, new Card { ColumnId = column.Id, Title = "A card", Position = 1 }));
+
+        // Act
+        var result = await UseColumnServiceAsync(service =>
+            service.DeleteAsync(board.Id, column.Id, TestContext.Current.CancellationToken));
+
+        // Assert
+        Assert.True(result.IsFailure);
+        Assert.Equal(ColumnErrors.HasCards(column.Id), result.Error);
+
+        var columnStillExists = await UseDbContextAsync(context => context.Columns.AnyAsync(c => c.Id == column.Id, TestContext.Current.CancellationToken));
+        Assert.True(columnStillExists);
+    }
+
     [Fact]
     public async Task CreateAsync_WhenRetriesExhausted_ReturnsPositionConflictFailureAndPersistsNothing()
     {
