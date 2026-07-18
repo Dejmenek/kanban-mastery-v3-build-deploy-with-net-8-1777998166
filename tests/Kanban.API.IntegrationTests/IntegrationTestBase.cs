@@ -67,4 +67,11 @@ public abstract class IntegrationTestBase(IntegrationTestWebAppFactory<Program> 
         var service = scope.ServiceProvider.GetRequiredService<IColumnService>();
         return await action(service);
     }
+
+    protected async Task<TResult> UseBoardServiceAsync<TResult>(Func<IBoardService, Task<TResult>> action)
+    {
+        using var scope = Factory.Services.CreateScope();
+        var service = scope.ServiceProvider.GetRequiredService<IBoardService>();
+        return await action(service);
+    }
 }
