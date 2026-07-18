@@ -69,7 +69,7 @@ public class BoardServiceTests(IntegrationTestWebAppFactory<Program> factory)
     }
 
     [Fact]
-    public async Task DeleteAsync_RemovesBoardCardsAndColumnsAndPersists()
+    public async Task DeleteAsync_RemovesBoardCardsColumnsAndMembershipsAndPersists()
     {
         // Arrange
         var owner = await CreateUserAsync("owner@example.com", "Test123!");
@@ -78,6 +78,10 @@ public class BoardServiceTests(IntegrationTestWebAppFactory<Program> factory)
             BoardTestHelper.SeedColumnAsync(context, new Column { BoardId = board.Id, Title = "To Do", Position = 1 }));
         await UseDbContextAsync(context =>
             BoardTestHelper.SeedCardAsync(context, new Card { ColumnId = column.Id, Title = "A card", Position = 1 }));
+
+        var member = await CreateUserAsync("member@example.com", "Test123!");
+        await UseDbContextAsync(context => BoardTestHelper.SeedBoardMemberAsync(
+            context, new BoardMember { BoardId = board.Id, MemberId = member.Id, Role = Role.Member }));
 
         // Act
         var result = await UseBoardServiceAsync(service =>
@@ -94,6 +98,9 @@ public class BoardServiceTests(IntegrationTestWebAppFactory<Program> factory)
 
         var cardCount = await UseDbContextAsync(context => context.Cards.CountAsync(c => c.ColumnId == column.Id, TestContext.Current.CancellationToken));
         Assert.Equal(0, cardCount);
+
+        var membershipCount = await UseDbContextAsync(context => context.BoardsMemberships.CountAsync(m => m.BoardId == board.Id, TestContext.Current.CancellationToken));
+        Assert.Equal(0, membershipCount);
     }
 
     [Fact]
