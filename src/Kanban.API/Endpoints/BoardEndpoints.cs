@@ -28,6 +28,11 @@ public static class BoardEndpoints
             .Produces(StatusCodes.Status401Unauthorized)
             .Produces(StatusCodes.Status403Forbidden)
             .Produces<string>(StatusCodes.Status404NotFound);
+        boards.MapPut("/{boardId:int}", UpdateBoard)
+            .Produces<BoardResponse>(StatusCodes.Status200OK)
+            .Produces(StatusCodes.Status403Forbidden)
+            .Produces<string>(StatusCodes.Status400BadRequest)
+            .Produces<string>(StatusCodes.Status404NotFound);
 
         boards.MapColumnEndpoints();
     }
@@ -109,5 +114,20 @@ public static class BoardEndpoints
         }
 
         return TypedResults.Created<BoardMemberResponse>($"/api/boards/{boardId}/members/{result.Value.MemberId}", result.Value);
+    }
+
+    private static async Task<IResult> UpdateBoard(
+        int boardId,
+        UpdateBoardRequest request,
+        IAuthorizationService authService,
+        IBoardService boardService, ClaimsPrincipal user, CancellationToken cancellationToken)
+    {
+        var authResult = await authService.AuthorizeAsync(user, boardId, "IsBoardOwner");
+        if (!authResult.Succeeded) return TypedResults.Forbid();
+
+        var result = await boardService.UpdateAsync(boardId, request, cancellationToken);
+        if (result.IsFailure) return result.Error.ToTypedResult();
+
+        return TypedResults.Ok(result.Value);
     }
 }
