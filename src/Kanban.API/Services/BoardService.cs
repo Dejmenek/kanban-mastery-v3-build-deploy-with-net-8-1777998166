@@ -144,4 +144,21 @@ public class BoardService(ApplicationDbContext context) : IBoardService
 
         return new BoardResponse(board.Id, board.Name, board.Description, members);
     }
+
+    public async Task<Result> DeleteAsync(int boardId, CancellationToken cancellationToken = default)
+    {
+        await using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
+
+        await context.Cards
+            .Where(c => c.Column.BoardId == boardId)
+            .ExecuteDeleteAsync(cancellationToken);
+
+        await context.Boards
+            .Where(b => b.Id == boardId)
+            .ExecuteDeleteAsync(cancellationToken);
+
+        await transaction.CommitAsync(cancellationToken);
+
+        return Result.Success();
+    }
 }
