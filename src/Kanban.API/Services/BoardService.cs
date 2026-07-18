@@ -115,4 +115,33 @@ public class BoardService(ApplicationDbContext context) : IBoardService
 
         return new BoardMemberResponse(userToAdd.Id, userToAdd.UserName, newMember.Role.ToString());
     }
+
+    public async Task<Result<BoardResponse>> UpdateAsync(
+        int boardId, UpdateBoardRequest request, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(request.Name))
+        {
+            return Result.Failure<BoardResponse>(BoardErrors.InvalidName);
+        }
+
+        var board = await context.Boards
+            .Include(b => b.Members)
+                .ThenInclude(m => m.Member)
+            .FirstOrDefaultAsync(b => b.Id == boardId, cancellationToken);
+
+        if (board is null)
+        {
+            return Result.Failure<BoardResponse>(BoardErrors.NotFound(boardId));
+        }
+
+        board.Name = request.Name;
+        board.Description = request.Description;
+        await context.SaveChangesAsync(cancellationToken);
+
+        var members = board.Members
+            .Select(m => new BoardMemberResponse(m.MemberId, m.Member.UserName, m.Role.ToString()))
+            .ToList();
+
+        return new BoardResponse(board.Id, board.Name, board.Description, members);
+    }
 }

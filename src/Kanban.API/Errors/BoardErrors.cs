@@ -15,4 +15,7 @@ public static class BoardErrors
 
     public static Error AlreadyMember =>
         Error.Conflict("Board.AlreadyMember", "User is already a member of the board.");
+
+    public static Error InvalidName =>
+        Error.Validation("Board.InvalidName", "Board name must not be empty.");
 }
