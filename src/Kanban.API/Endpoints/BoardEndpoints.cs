@@ -33,6 +33,9 @@ public static class BoardEndpoints
             .Produces(StatusCodes.Status403Forbidden)
             .Produces<string>(StatusCodes.Status400BadRequest)
             .Produces<string>(StatusCodes.Status404NotFound);
+        boards.MapDelete("/{boardId:int}", DeleteBoard)
+            .Produces(StatusCodes.Status204NoContent)
+            .Produces(StatusCodes.Status403Forbidden);
 
         boards.MapColumnEndpoints();
     }
@@ -129,5 +132,21 @@ public static class BoardEndpoints
         if (result.IsFailure) return result.Error.ToTypedResult();
 
         return TypedResults.Ok(result.Value);
+    }
+
+    private static async Task<IResult> DeleteBoard(
+        int boardId,
+        IAuthorizationService authService,
+        IBoardService boardService, ClaimsPrincipal user, CancellationToken cancellationToken)
+    {
+        var authResult = await authService.AuthorizeAsync(user, boardId, "IsBoardOwner");
+        if (!authResult.Succeeded)
+        {
+            return TypedResults.Forbid();
+        }
+
+        await boardService.DeleteAsync(boardId, cancellationToken);
+
+        return TypedResults.NoContent();
     }
 }
