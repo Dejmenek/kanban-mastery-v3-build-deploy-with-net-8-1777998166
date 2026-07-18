@@ -223,4 +223,84 @@ public class BoardEndpointsTests(IntegrationTestWebAppFactory<Program> factory) 
         // Assert
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
     }
+
+    [Fact]
+    public async Task UpdateBoard_AsOwner_ReturnsOkAndUpdatesBoard()
+    {
+        // Arrange
+        var owner = await CreateUserAndAuthenticateAsync("owner@example.com", "Test123!");
+        var board = await UseDbContextAsync(context => BoardTestHelper.SeedBoardAsync(context, owner.Id));
+
+        var request = new UpdateBoardRequest("Updated Name", "Updated description");
+
+        // Act
+        var response = await Client.PutAsJsonAsync($"/api/boards/{board.Id}", request, TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var body = await response.Content.ReadFromJsonAsync<BoardResponse>(TestContext.Current.CancellationToken);
+        Assert.NotNull(body);
+        Assert.Equal(request.Name, body.Name);
+        Assert.Equal(request.Description, body.Description);
+    }
+
+    [Fact]
+    public async Task UpdateBoard_AsMember_ReturnsForbidden()
+    {
+        // Arrange
+        var owner = await CreateUserAndAuthenticateAsync("owner@example.com", "Test123!");
+        var board = await UseDbContextAsync(context => BoardTestHelper.SeedBoardAsync(context, owner.Id));
+
+        var memberEmail = "member@example.com";
+        var memberPassword = "Test123!";
+        var member = await CreateUserAsync(memberEmail, memberPassword);
+        await UseDbContextAsync(context => BoardTestHelper.SeedBoardMemberAsync(
+            context, new BoardMember { BoardId = board.Id, MemberId = member.Id, Role = Role.Member }));
+
+        await AuthenticateAsAsync(memberEmail, memberPassword);
+
+        // Act
+        var response = await Client.PutAsJsonAsync(
+            $"/api/boards/{board.Id}", new UpdateBoardRequest("Hacked Name", null), TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task DeleteBoard_AsOwner_ReturnsNoContent()
+    {
+        // Arrange
+        var owner = await CreateUserAndAuthenticateAsync("owner@example.com", "Test123!");
+        var board = await UseDbContextAsync(context => BoardTestHelper.SeedBoardAsync(context, owner.Id));
+
+        // Act
+        var response = await Client.DeleteAsync($"/api/boards/{board.Id}", TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task DeleteBoard_AsMember_ReturnsForbidden()
+    {
+        // Arrange
+        var owner = await CreateUserAndAuthenticateAsync("owner@example.com", "Test123!");
+        var board = await UseDbContextAsync(context => BoardTestHelper.SeedBoardAsync(context, owner.Id));
+
+        var memberEmail = "member@example.com";
+        var memberPassword = "Test123!";
+        var member = await CreateUserAsync(memberEmail, memberPassword);
+        await UseDbContextAsync(context => BoardTestHelper.SeedBoardMemberAsync(
+            context, new BoardMember { BoardId = board.Id, MemberId = member.Id, Role = Role.Member }));
+
+        await AuthenticateAsAsync(memberEmail, memberPassword);
+
+        // Act
+        var response = await Client.DeleteAsync($"/api/boards/{board.Id}", TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
 }
