@@ -14,4 +14,6 @@ public interface IBoardService
     Task<Result<BoardMemberResponse>> AddMemberAsync(int boardId, AddBoardMemberRequest request, CancellationToken cancellationToken = default);
 
     Task<Result<BoardResponse>> UpdateAsync(int boardId, UpdateBoardRequest request, CancellationToken cancellationToken = default);
+
+    Task<Result> DeleteAsync(int boardId, CancellationToken cancellationToken = default);
 }
