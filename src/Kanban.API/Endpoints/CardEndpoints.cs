@@ -30,7 +30,28 @@ public static class CardEndpoints
             .Produces<string>(StatusCodes.Status400BadRequest)
             .Produces<string>(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status500InternalServerError);
+        cards.MapPut("/{cardId:int}/assign", AssignCard)
+            .Produces<CardResponse>(StatusCodes.Status200OK)
+            .Produces(StatusCodes.Status403Forbidden)
+            .Produces<string>(StatusCodes.Status400BadRequest)
+            .Produces<string>(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status500InternalServerError);
+    }
 
+    private static async Task<IResult> AssignCard(
+        int boardId, int cardId, AssignCardRequest request, ICardService cardService,
+        ClaimsPrincipal user, IAuthorizationService authService, CancellationToken cancellationToken)
+    {
+        var authResult = await authService.AuthorizeAsync(user, boardId, "IsBoardMember");
+        if (!authResult.Succeeded)
+        {
+            return TypedResults.Forbid();
+        }
+
+        var result = await cardService.AssignCardToUserAsync(cardId, boardId, request, cancellationToken);
+        if (result.IsFailure) return result.Error.ToTypedResult();
+
+        return TypedResults.Ok(result.Value);
     }
 
     private static async Task<IResult> CreateCard(
