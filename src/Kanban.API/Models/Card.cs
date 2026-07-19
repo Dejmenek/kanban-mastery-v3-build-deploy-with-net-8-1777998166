@@ -7,6 +7,8 @@ public class Card
     public string Title { get; set; } = null!;
     public string? Description { get; set; }
     public int Position { get; set; }
+    public string? AssignedToUserId { get; set; }
 
     public Column Column { get; set; } = null!;
+    public ApplicationUser? AssignedToUser { get; set; }
 }
