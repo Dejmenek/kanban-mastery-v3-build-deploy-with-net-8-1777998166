@@ -38,6 +38,7 @@ public static class BoardEndpoints
             .Produces(StatusCodes.Status403Forbidden);
 
         boards.MapColumnEndpoints();
+        boards.MapCardEndpoints();
     }
 
     private static async Task<IResult> GetById(
