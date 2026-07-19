@@ -1,4 +1,4 @@
-namespace Kanban.API.DTOs.Boards;
+namespace Kanban.API.DTOs.Boards.Cards;
 
 public record CardResponse(
     int Id,

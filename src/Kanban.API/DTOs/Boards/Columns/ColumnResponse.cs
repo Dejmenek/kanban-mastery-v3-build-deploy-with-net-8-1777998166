@@ -1,3 +1,5 @@
+using Kanban.API.DTOs.Boards.Cards;
+
 namespace Kanban.API.DTOs.Boards.Columns;
 
 public record ColumnResponse(
