@@ -380,4 +380,76 @@ public class CardServiceTests(IntegrationTestWebAppFactory<Program> factory)
         var cardStillExists = await UseDbContextAsync(context => context.Cards.AnyAsync(c => c.Id == cardOnBoardB.Id, TestContext.Current.CancellationToken));
         Assert.True(cardStillExists);
     }
+
+    [Fact]
+    public async Task AssignCardToUserAsync_WithNonMemberUser_ReturnsUserNotMemberAndPersistsNothing()
+    {
+        // Arrange
+        var owner = await CreateUserAsync("owner@example.com", "Test123!");
+        var board = await UseDbContextAsync(context => BoardTestHelper.SeedBoardAsync(context, owner.Id));
+        var column = await UseDbContextAsync(context =>
+            BoardTestHelper.SeedColumnAsync(context, new Column { BoardId = board.Id, Title = "To Do", Position = 1 }));
+        var card = await UseDbContextAsync(context =>
+            BoardTestHelper.SeedCardAsync(context, new Card { ColumnId = column.Id, Title = "Original", Position = 1 }));
+
+        var nonMember = await CreateUserAsync("nonmember@example.com", "Test123!");
+
+        // Act
+        var result = await UseCardServiceAsync(service =>
+            service.AssignCardToUserAsync(card.Id, board.Id, new AssignCardRequest(nonMember.Id), TestContext.Current.CancellationToken));
+
+        // Assert
+        Assert.True(result.IsFailure);
+        Assert.Equal(BoardErrors.UserNotMember(nonMember.Id, board.Id), result.Error);
+
+        var persisted = await UseDbContextAsync(context => context.Cards.SingleAsync(c => c.Id == card.Id, TestContext.Current.CancellationToken));
+        Assert.Null(persisted.AssignedToUserId);
+    }
+
+    [Fact]
+    public async Task AssignCardToUserAsync_WithNonExistentCard_ReturnsNotFoundAndPersistsNothing()
+    {
+        // Arrange
+        const int nonExistentCardId = 999;
+        var owner = await CreateUserAsync("owner@example.com", "Test123!");
+        var board = await UseDbContextAsync(context => BoardTestHelper.SeedBoardAsync(context, owner.Id));
+
+        // Act
+        var result = await UseCardServiceAsync(service =>
+            service.AssignCardToUserAsync(nonExistentCardId, board.Id, new AssignCardRequest(owner.Id), TestContext.Current.CancellationToken));
+
+        // Assert
+        Assert.True(result.IsFailure);
+        Assert.Equal(CardErrors.NotFound(nonExistentCardId), result.Error);
+
+        var cardCount = await UseDbContextAsync(context => context.Cards.CountAsync(TestContext.Current.CancellationToken));
+        Assert.Equal(0, cardCount);
+    }
+
+    [Fact]
+    public async Task AssignCardToUserAsync_WithValidRequest_AssignsAndPersists()
+    {
+        // Arrange
+        var owner = await CreateUserAsync("owner@example.com", "Test123!");
+        var board = await UseDbContextAsync(context => BoardTestHelper.SeedBoardAsync(context, owner.Id));
+        var column = await UseDbContextAsync(context =>
+            BoardTestHelper.SeedColumnAsync(context, new Column { BoardId = board.Id, Title = "To Do", Position = 1 }));
+        var card = await UseDbContextAsync(context =>
+            BoardTestHelper.SeedCardAsync(context, new Card { ColumnId = column.Id, Title = "Original", Position = 1 }));
+
+        var member = await CreateUserAsync("member@example.com", "Test123!");
+        await UseDbContextAsync(context =>
+            BoardTestHelper.SeedBoardMemberAsync(context, new BoardMember { BoardId = board.Id, MemberId = member.Id, Role = Role.Member }));
+
+        // Act
+        var result = await UseCardServiceAsync(service =>
+            service.AssignCardToUserAsync(card.Id, board.Id, new AssignCardRequest(member.Id), TestContext.Current.CancellationToken));
+
+        // Assert
+        Assert.True(result.IsSuccess);
+        Assert.Equal(card.Id, result.Value.Id);
+
+        var persisted = await UseDbContextAsync(context => context.Cards.SingleAsync(c => c.Id == card.Id, TestContext.Current.CancellationToken));
+        Assert.Equal(member.Id, persisted.AssignedToUserId);
+    }
 }
