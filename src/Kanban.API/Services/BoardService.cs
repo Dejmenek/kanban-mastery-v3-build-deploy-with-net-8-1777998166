@@ -1,6 +1,7 @@
 using Kanban.API.Common;
 using Kanban.API.Data;
 using Kanban.API.DTOs.Boards;
+using Kanban.API.DTOs.Boards.Cards;
 using Kanban.API.DTOs.Boards.Columns;
 using Kanban.API.Errors;
 using Kanban.API.Models;
