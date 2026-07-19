@@ -25,6 +25,7 @@ builder.Services.AddScoped<IRetryExecutor, DbUpdateRetryExecutor>();
 builder.Services.AddScoped<IBoardService, BoardService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IColumnService, ColumnService>();
+builder.Services.AddScoped<ICardService, CardService>();
 builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("IsBoardOwner", policy =>
