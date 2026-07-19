@@ -366,4 +366,111 @@ public class CardEndpointsTests(IntegrationTestWebAppFactory<Program> factory)
         // Assert
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
+
+    [Fact]
+    public async Task AssignCard_AsNonMember_ReturnsForbidden()
+    {
+        // Arrange
+        var owner = await CreateUserAsync("owner@example.com", "Test123!");
+        var board = await UseDbContextAsync(context => BoardTestHelper.SeedBoardAsync(context, owner.Id));
+        var column = await UseDbContextAsync(context =>
+            BoardTestHelper.SeedColumnAsync(context, new Column { BoardId = board.Id, Title = "To Do", Position = 1 }));
+        var card = await UseDbContextAsync(context =>
+            BoardTestHelper.SeedCardAsync(context, new Card { ColumnId = column.Id, Title = "Original", Position = 1 }));
+
+        var nonMemberEmail = "nonmember@example.com";
+        var nonMemberPassword = "Test123!";
+        await CreateUserAsync(nonMemberEmail, nonMemberPassword);
+        await AuthenticateAsAsync(nonMemberEmail, nonMemberPassword);
+
+        var request = new AssignCardRequest(owner.Id);
+
+        // Act
+        var response = await Client.PutAsJsonAsync(
+            $"/api/boards/{board.Id}/cards/{card.Id}/assign",
+            request,
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task AssignCard_AsMember_ReturnsOkAndAssigns()
+    {
+        // Arrange
+        var owner = await CreateUserAndAuthenticateAsync("owner@example.com", "Test123!");
+        var board = await UseDbContextAsync(context => BoardTestHelper.SeedBoardAsync(context, owner.Id));
+        var column = await UseDbContextAsync(context =>
+            BoardTestHelper.SeedColumnAsync(context, new Column { BoardId = board.Id, Title = "To Do", Position = 1 }));
+        var card = await UseDbContextAsync(context =>
+            BoardTestHelper.SeedCardAsync(context, new Card { ColumnId = column.Id, Title = "Original", Position = 1 }));
+
+        var memberEmail = "member@example.com";
+        var memberPassword = "Test123!";
+        var member = await CreateUserAsync(memberEmail, memberPassword);
+        await UseDbContextAsync(context =>
+            BoardTestHelper.SeedBoardMemberAsync(context, new BoardMember { BoardId = board.Id, MemberId = member.Id, Role = Role.Member }));
+
+        var request = new AssignCardRequest(member.Id);
+
+        // Act
+        var response = await Client.PutAsJsonAsync(
+            $"/api/boards/{board.Id}/cards/{card.Id}/assign",
+            request,
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var body = await response.Content.ReadFromJsonAsync<CardResponse>(TestContext.Current.CancellationToken);
+        Assert.NotNull(body);
+        Assert.Equal(card.Id, body.Id);
+        Assert.Equal(card.Title, body.Title);
+    }
+
+    [Fact]
+    public async Task AssignCard_WithInvalidUser_ReturnsBadRequest()
+    {
+        // Arrange
+        var owner = await CreateUserAndAuthenticateAsync("owner@example.com", "Test123!");
+        var board = await UseDbContextAsync(context => BoardTestHelper.SeedBoardAsync(context, owner.Id));
+        var column = await UseDbContextAsync(context =>
+            BoardTestHelper.SeedColumnAsync(context, new Column { BoardId = board.Id, Title = "To Do", Position = 1 }));
+        var card = await UseDbContextAsync(context =>
+            BoardTestHelper.SeedCardAsync(context, new Card { ColumnId = column.Id, Title = "Original", Position = 1 }));
+
+        var nonMember = await CreateUserAsync("nonmember@example.com", "Test123!");
+
+        var request = new AssignCardRequest(nonMember.Id);
+
+        // Act
+        var response = await Client.PutAsJsonAsync(
+            $"/api/boards/{board.Id}/cards/{card.Id}/assign",
+            request,
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task AssignCard_WithNonExistentCard_ReturnsNotFound()
+    {
+        // Arrange
+        const int nonExistentCardId = 999;
+        var owner = await CreateUserAndAuthenticateAsync("owner@example.com", "Test123!");
+        var board = await UseDbContextAsync(context => BoardTestHelper.SeedBoardAsync(context, owner.Id));
+
+        var request = new AssignCardRequest(owner.Id);
+
+        // Act
+        var response = await Client.PutAsJsonAsync(
+            $"/api/boards/{board.Id}/cards/{nonExistentCardId}/assign",
+            request,
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
 }
