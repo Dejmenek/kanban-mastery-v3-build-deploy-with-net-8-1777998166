@@ -9,6 +9,27 @@ namespace Kanban.API.Services;
 
 public class CardService(ApplicationDbContext context) : ICardService
 {
+    public async Task<Result<CardResponse>> AssignCardToUserAsync(
+        int cardId, int boardId, AssignCardRequest request, CancellationToken cancellationToken)
+    {
+        var isMember = await context.BoardsMemberships.AnyAsync(bm => bm.BoardId == boardId && bm.MemberId == request.UserId, cancellationToken);
+        if (!isMember) return Result.Failure<CardResponse>(BoardErrors.UserNotMember(request.UserId, boardId));
+
+        var card = await context.Cards.FirstOrDefaultAsync(c => c.Id == cardId && c.Column.BoardId == boardId, cancellationToken);
+        if (card is null) return Result.Failure<CardResponse>(CardErrors.NotFound(cardId));
+
+        card.AssignedToUserId = request.UserId;
+        await context.SaveChangesAsync(cancellationToken);
+
+        return Result.Success(new CardResponse
+        (
+            card.Id,
+            card.Title,
+            card.Description,
+            card.Position
+        ));
+    }
+
     public async Task<Result<CardResponse>> CreateAsync(int boardId, CreateCardRequest request, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(request.Title)) return Result.Failure<CardResponse>(CardErrors.InvalidTitle);

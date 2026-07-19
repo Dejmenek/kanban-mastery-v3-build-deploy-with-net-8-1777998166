@@ -18,4 +18,7 @@ public static class BoardErrors
 
     public static Error InvalidName =>
         Error.Validation("Board.InvalidName", "Board name must not be empty.");
+
+    public static Error UserNotMember(string userId, int boardId) =>
+        Error.Validation("Board.UserNotMember", $"User with id '{userId}' is not a member of board '{boardId}'.");
 }
