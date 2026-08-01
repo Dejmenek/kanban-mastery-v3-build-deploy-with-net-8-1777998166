@@ -1,0 +1,43 @@
+<div class="auth-page">
+  <div class="auth-card">
+    <h1 class="auth-title">Log In</h1>
+
+    <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="auth-form" novalidate>
+      <div class="form-field">
+        <label for="email">Email</label>
+        <input
+          id="email"
+          type="email"
+          formControlName="email"
+          [class.has-error]="loginForm.controls.email.invalid && loginForm.controls.email.touched"
+        />
+        @if (loginForm.controls.email.touched && loginForm.controls.email.hasError('required')) {
+          <span class="field-error">Email is required.</span>
+        } @else if (loginForm.controls.email.touched && loginForm.controls.email.hasError('email')) {
+          <span class="field-error">Enter a valid email address.</span>
+        }
+      </div>
+
+      <div class="form-field">
+        <label for="password">Password</label>
+        <input
+          id="password"
+          type="password"
+          formControlName="password"
+          [class.has-error]="loginForm.controls.password.invalid && loginForm.controls.password.touched"
+        />
+        @if (loginForm.controls.password.touched && loginForm.controls.password.hasError('required')) {
+          <span class="field-error">Password is required.</span>
+        }
+      </div>
+
+      @if (errorMessage()) {
+        <div class="form-error" role="alert">{{ errorMessage() }}</div>
+      }
+
+      <button type="submit" class="btn-primary" [disabled]="!loginForm.valid || isSubmitting()">
+        {{ isSubmitting() ? 'Logging In...' : 'Log In' }}
+      </button>
+    </form>
+  </div>
+</div>
