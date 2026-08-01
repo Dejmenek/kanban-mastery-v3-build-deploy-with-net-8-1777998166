@@ -8,11 +8,9 @@
     <BuildOutputFolder>$(MSBuildProjectDirectory)\dist\kanban-web\browser\</BuildOutputFolder>
   </PropertyGroup>
   <ItemGroup>
-    <Folder Include="src\app\core\auth\" />
     <Folder Include="src\app\core\access\" />
     <Folder Include="src\app\core\http\interceptors\" />
     <Folder Include="src\app\core\http\services\" />
-    <Folder Include="src\app\features\" />
     <Folder Include="src\app\shared\" />
   </ItemGroup>
 </Project>
