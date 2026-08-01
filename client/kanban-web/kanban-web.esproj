@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.VisualStudio.JavaScript.Sdk/1.0.4338480">
+  <PropertyGroup>
+    <StartupCommand>npm start</StartupCommand>
+    <JavaScriptTestFramework>Jasmine</JavaScriptTestFramework>
+    <!-- Allows the build (or compile) script located on package.json to run on Build -->
+    <ShouldRunBuildScript>false</ShouldRunBuildScript>
+    <!-- Folder where production build objects will be placed -->
+    <BuildOutputFolder>$(MSBuildProjectDirectory)\dist\kanban-web\browser\</BuildOutputFolder>
+  </PropertyGroup>
+  <ItemGroup>
+    <Folder Include="src\app\core\auth\" />
+    <Folder Include="src\app\core\access\" />
+    <Folder Include="src\app\core\http\interceptors\" />
+    <Folder Include="src\app\core\http\services\" />
+    <Folder Include="src\app\features\" />
+    <Folder Include="src\app\shared\" />
+  </ItemGroup>
+</Project>
