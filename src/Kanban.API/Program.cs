@@ -34,6 +34,16 @@ builder.Services.AddAuthorization(options =>
         policy.Requirements.Add(new IsBoardMemberRequirement()));
 });
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AngularClient", policy =>
+    {
+        policy.WithOrigins("http://localhost:59125", "https://localhost:59125")
+              .AllowAnyHeader()
+              .AllowAnyMethod();
+    });
+});
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
@@ -71,6 +81,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+app.UseCors("AngularClient");
 
 app.UseAuthentication();
 app.UseAuthorization();
