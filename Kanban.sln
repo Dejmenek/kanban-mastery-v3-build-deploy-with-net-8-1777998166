@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kanban.API", "src\Kanban.AP
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kanban.API.IntegrationTests", "tests\Kanban.API.IntegrationTests\Kanban.API.IntegrationTests.csproj", "{75EFD496-7B47-46C7-960E-45093523D0A9}"
 EndProject
+Project("{54A90642-561A-4BB1-A94E-469ADEE60C69}") = "kanban-web", "client\kanban-web\kanban-web.esproj", "{45CA8DE3-9F13-0D06-20D2-2191717D9CCE}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +23,12 @@ Global
 		{75EFD496-7B47-46C7-960E-45093523D0A9}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{75EFD496-7B47-46C7-960E-45093523D0A9}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{75EFD496-7B47-46C7-960E-45093523D0A9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{45CA8DE3-9F13-0D06-20D2-2191717D9CCE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{45CA8DE3-9F13-0D06-20D2-2191717D9CCE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{45CA8DE3-9F13-0D06-20D2-2191717D9CCE}.Debug|Any CPU.Deploy.0 = Debug|Any CPU
+		{45CA8DE3-9F13-0D06-20D2-2191717D9CCE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{45CA8DE3-9F13-0D06-20D2-2191717D9CCE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{45CA8DE3-9F13-0D06-20D2-2191717D9CCE}.Release|Any CPU.Deploy.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
