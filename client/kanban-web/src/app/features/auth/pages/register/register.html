@@ -1,0 +1,52 @@
+<div class="auth-page">
+  <div class="auth-card">
+    <h1 class="auth-title">Sign Up</h1>
+
+    <form [formGroup]="registerForm" (ngSubmit)="onSubmit()" class="auth-form" novalidate>
+      <div class="form-field">
+        <label for="email">Email</label>
+        <input
+          id="email"
+          type="email"
+          formControlName="email"
+          [class.has-error]="registerForm.controls.email.invalid && registerForm.controls.email.touched"
+        />
+        @if (registerForm.controls.email.touched && registerForm.controls.email.hasError('required')) {
+          <span class="field-error">Email is required.</span>
+        } @else if (registerForm.controls.email.touched && registerForm.controls.email.hasError('email')) {
+          <span class="field-error">Enter a valid email address.</span>
+        }
+      </div>
+
+      <div class="form-field">
+        <label for="password">Password</label>
+        <input
+          id="password"
+          type="password"
+          formControlName="password"
+          [class.has-error]="registerForm.controls.password.invalid && registerForm.controls.password.touched"
+        />
+        <span class="password-hint">
+          Must be at least 6 characters and include an uppercase letter, a lowercase letter, a digit, and a symbol.
+        </span>
+        @if (registerForm.controls.password.touched && registerForm.controls.password.hasError('required')) {
+          <span class="field-error">Password is required.</span>
+        } @else if (registerForm.controls.password.touched && registerForm.controls.password.hasError('minlength')) {
+          <span class="field-error">Password must be at least 6 characters.</span>
+        } @else if (registerForm.controls.password.touched && registerForm.controls.password.hasError('pattern')) {
+          <span class="field-error">
+            Password must include an uppercase letter, a lowercase letter, a digit, and a symbol.
+          </span>
+        }
+      </div>
+
+      @if (errorMessage()) {
+        <div class="form-error" role="alert">{{ errorMessage() }}</div>
+      }
+
+      <button type="submit" class="btn-primary" [disabled]="!registerForm.valid || isSubmitting()">
+        {{ isSubmitting() ? 'Signing Up...' : 'Sign Up' }}
+      </button>
+    </form>
+  </div>
+</div>
