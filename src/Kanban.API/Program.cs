@@ -78,6 +78,8 @@ if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
+
+    await DbSeeder.SeedAsync(app.Services);
 }
 
 app.UseHttpsRedirection();
