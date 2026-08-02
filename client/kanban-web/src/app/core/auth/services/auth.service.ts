@@ -9,11 +9,12 @@ export class AuthService {
   private api = inject(ApiService);
   private tokenService = inject(TokenService);
 
-  private loggedIn = signal<boolean>(this.tokenService.isTokenValid());
+  private _loggedIn = signal<boolean>(this.tokenService.isTokenValid());
+  readonly loggedIn = this._loggedIn.asReadonly();
 
   isAuthenticated(): boolean {
     const valid = this.tokenService.isTokenValid();
-    this.loggedIn.set(valid);
+    this._loggedIn.set(valid);
     return valid;
   }
 
@@ -31,12 +32,12 @@ export class AuthService {
 
   logout(): void {
     this.tokenService.clearToken();
-    this.loggedIn.set(false);
+    this._loggedIn.set(false);
   }
 
   private storeSession(response: LoginResponse): void {
     const expiresAt = Date.now() + response.expiresIn * 1000;
     this.tokenService.saveToken(response.accessToken, expiresAt, response.refreshToken);
-    this.loggedIn.set(true);
+    this._loggedIn.set(true);
   }
 }
