@@ -1,0 +1,31 @@
+<div class="dashboard-page">
+  <header class="dashboard-header">
+    <h1 class="dashboard-title">Boards</h1>
+  </header>
+
+  @if (boardsResource.isLoading()) {
+    <div class="board-grid" aria-busy="true" aria-label="Loading boards">
+      @for (i of [1, 2, 3, 4, 5, 6]; track i) {
+        <div class="board-card board-card-skeleton"></div>
+      }
+    </div>
+  } @else if (boardsResource.error()) {
+    <div class="dashboard-state dashboard-state-error" role="alert">
+      <p class="dashboard-state-text">Couldn't load your boards. Please try again.</p>
+    </div>
+  } @else if (boardsResource.value()?.length) {
+    <div class="board-grid">
+      @for (board of boardsResource.value(); track board.id) {
+        <article class="board-card">
+          <h2 class="board-card-title">{{ board.name }}</h2>
+          <span class="board-card-role">{{ board.userRole }}</span>
+          <a class="board-card-link" [routerLink]="['/board', board.id]">View</a>
+        </article>
+      }
+    </div>
+  } @else {
+    <div class="dashboard-state">
+      <p class="dashboard-state-text">You don't have any boards yet.</p>
+    </div>
+  }
+</div>
