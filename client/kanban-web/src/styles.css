@@ -66,6 +66,17 @@
   /* Motion */
   --transition-fast: 150ms;
   --transition-timing: ease;
+
+  /* z-index contract (see kanban_design.md) */
+  --z-base: 0;
+  --z-sticky-nav: 100;
+  --z-overlay: 200;
+  --z-modal: 300;
+  --z-toast: 500;
+
+  /* Sidebar */
+  --sidebar-width-expanded: 14rem;
+  --sidebar-width-collapsed: 3.5rem;
 }
 
 *,
