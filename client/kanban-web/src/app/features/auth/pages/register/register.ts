@@ -2,10 +2,9 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Component, inject, signal } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
-import { finalize, switchMap } from 'rxjs';
-import { JwtService } from '../../../../core/auth/services/jwt.service';
-import { ApiService } from '../../../../core/http/services/api.service';
-import { LoginRequest, LoginResponse, RegisterRequest } from '../../models/auth.models';
+import { finalize } from 'rxjs';
+import { AuthService } from '../../../../core/auth/services/auth.service';
+import { RegisterRequest } from '../../../../core/auth/models/auth.models';
 import { extractIdentityErrorMessage } from '../../utils/identity-error';
 
 @Component({
@@ -15,9 +14,8 @@ import { extractIdentityErrorMessage } from '../../utils/identity-error';
   imports: [ReactiveFormsModule],
 })
 export class Register {
-  private api = inject(ApiService);
+  private auth = inject(AuthService);
   private router = inject(Router);
-  private jwt = inject(JwtService);
   protected registerForm = new FormGroup({
     email: new FormControl('', [Validators.required, Validators.email]),
     password: new FormControl('', [
@@ -38,20 +36,16 @@ export class Register {
     this.errorMessage.set(null);
     this.isSubmitting.set(true);
 
-    const credentials: LoginRequest = {
+    const credentials: RegisterRequest = {
       email: this.registerForm.value.email!,
       password: this.registerForm.value.password!,
     };
 
-    this.api
-      .post<RegisterRequest, void>('/register', credentials)
-      .pipe(
-        switchMap(() => this.api.post<LoginRequest, LoginResponse>('/login', credentials)),
-        finalize(() => this.isSubmitting.set(false)),
-      )
+    this.auth
+      .register(credentials)
+      .pipe(finalize(() => this.isSubmitting.set(false)))
       .subscribe({
-        next: (response) => {
-          this.jwt.saveToken(response.accessToken);
+        next: () => {
           this.router.navigate(['/dashboard']);
         },
         error: (err: HttpErrorResponse) => {

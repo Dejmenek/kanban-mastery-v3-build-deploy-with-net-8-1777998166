@@ -2,9 +2,8 @@ import { Component, inject, signal } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { finalize } from 'rxjs';
-import { ApiService } from '../../../../core/http/services/api.service';
-import { JwtService } from '../../../../core/auth/services/jwt.service';
-import { LoginRequest, LoginResponse } from '../../models/auth.models';
+import { AuthService } from '../../../../core/auth/services/auth.service';
+import { LoginRequest } from '../../../../core/auth/models/auth.models';
 import { extractIdentityErrorMessage } from '../../utils/identity-error';
 import { Router } from '@angular/router';
 
@@ -15,9 +14,8 @@ import { Router } from '@angular/router';
   imports: [ReactiveFormsModule],
 })
 export class Login {
-  private api = inject(ApiService);
+  private auth = inject(AuthService);
   private router = inject(Router);
-  private jwt = inject(JwtService);
   protected loginForm = new FormGroup({
     email: new FormControl('', [Validators.required, Validators.email]),
     password: new FormControl('', [Validators.required]),
@@ -34,19 +32,19 @@ export class Login {
     this.errorMessage.set(null);
     this.isSubmitting.set(true);
 
-    this.api
-      .post<LoginRequest, LoginResponse>('/login', {
-        email: this.loginForm.value.email!,
-        password: this.loginForm.value.password!,
-      })
+    const credentials: LoginRequest = {
+      email: this.loginForm.value.email!,
+      password: this.loginForm.value.password!,
+    };
+
+    this.auth
+      .login(credentials)
       .pipe(finalize(() => this.isSubmitting.set(false)))
       .subscribe({
-        next: (response) => {
-          this.jwt.saveToken(response.accessToken);
+        next: () => {
           this.router.navigate(['/dashboard']);
         },
         error: (err: HttpErrorResponse) => {
-          console.error(err);
           this.errorMessage.set(
             err.status === 401 ? 'Invalid email or password.' : extractIdentityErrorMessage(err, 'Login failed'),
           );
