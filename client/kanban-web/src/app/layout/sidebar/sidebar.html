@@ -1,0 +1,63 @@
+<aside class="sidebar" [class.collapsed]="collapsed()">
+  <button
+    type="button"
+    class="sidebar-toggle"
+    (click)="toggleCollapsed()"
+    [attr.aria-expanded]="!collapsed()"
+    aria-label="Toggle sidebar navigation"
+  >
+    <span class="icon" [class.icon-menu]="collapsed()" [class.icon-close]="!collapsed()" aria-hidden="true"></span>
+  </button>
+
+  <nav class="sidebar-nav" aria-label="Main navigation">
+    <ul>
+      <li>
+        <a
+          routerLink="/"
+          routerLinkActive="active"
+          #home="routerLinkActive"
+          [routerLinkActiveOptions]="{ exact: true }"
+          [attr.aria-current]="home.isActive ? 'page' : null"
+          class="nav-item"
+        >
+          <span class="nav-icon icon-home" aria-hidden="true"></span>
+          <span class="nav-label">Home</span>
+        </a>
+      </li>
+      @if (auth.loggedIn()) {
+        <li>
+          <a
+            routerLink="/dashboard"
+            routerLinkActive="active"
+            #dash="routerLinkActive"
+            [routerLinkActiveOptions]="{ exact: true }"
+            [attr.aria-current]="dash.isActive ? 'page' : null"
+            class="nav-item"
+          >
+            <span class="nav-icon icon-dashboard" aria-hidden="true"></span>
+            <span class="nav-label">Dashboard</span>
+          </a>
+        </li>
+        <li>
+          <button type="button" class="nav-item nav-item-button" (click)="onLogout()">
+            <span class="nav-icon icon-logout" aria-hidden="true"></span>
+            <span class="nav-label">Logout</span>
+          </button>
+        </li>
+      } @else {
+        <li>
+          <a routerLink="/login" class="nav-item">
+            <span class="nav-icon icon-login" aria-hidden="true"></span>
+            <span class="nav-label">Login</span>
+          </a>
+        </li>
+        <li>
+          <a routerLink="/register" class="nav-item">
+            <span class="nav-icon icon-register" aria-hidden="true"></span>
+            <span class="nav-label">Register</span>
+          </a>
+        </li>
+      }
+    </ul>
+  </nav>
+</aside>
