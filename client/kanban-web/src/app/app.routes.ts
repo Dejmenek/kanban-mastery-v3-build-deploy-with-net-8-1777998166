@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/auth/guards/auth-guard';
+import { boardResolver } from './features/boards/board-resolver';
 
 export const routes: Routes = [
   {
@@ -23,7 +24,11 @@ export const routes: Routes = [
         canActivate: [authGuard],
         loadComponent: () => import('./features/dashboard/dashboard').then((m) => m.Dashboard),
       },
-    ],
+      {
+        path: 'board/:boardId',
+        canActivate: [authGuard],
+        resolve: { board: boardResolver },
+        loadComponent: () => import('./features/boards/pages/board-detail/board-detail').then((m) => m.BoardDetail),
   },
   {
         path: 'forbidden',
