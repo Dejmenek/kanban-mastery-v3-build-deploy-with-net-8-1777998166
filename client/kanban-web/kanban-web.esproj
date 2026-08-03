@@ -11,6 +11,7 @@
     <Folder Include="src\app\core\access\" />
     <Folder Include="src\app\core\http\interceptors\" />
     <Folder Include="src\app\core\http\services\" />
+    <Folder Include="src\app\features\boards\pages\" />
     <Folder Include="src\app\shared\" />
   </ItemGroup>
 </Project>
