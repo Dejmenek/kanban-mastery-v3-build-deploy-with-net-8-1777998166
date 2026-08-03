@@ -3,6 +3,14 @@ import { authGuard } from './core/auth/guards/auth-guard';
 
 export const routes: Routes = [
   {
+    path: 'login',
+    loadComponent: () => import('./features/auth/pages/login/login').then((m) => m.Login),
+  },
+  {
+    path: 'register',
+    loadComponent: () => import('./features/auth/pages/register/register').then((m) => m.Register),
+  },
+  {
     path: '',
     loadComponent: () => import('./layout/shell/shell').then((m) => m.Shell),
     children: [
@@ -18,11 +26,18 @@ export const routes: Routes = [
     ],
   },
   {
-    path: 'login',
-    loadComponent: () => import('./features/auth/pages/login/login').then((m) => m.Login),
+        path: 'forbidden',
+        loadComponent: () => import('./shared/pages/forbidden/forbidden').then((m) => m.Forbidden),
+      },
+      {
+        path: 'error',
+        loadComponent: () => import('./shared/pages/error-page/error-page').then((m) => m.ErrorPage),
   },
   {
-    path: 'register',
-    loadComponent: () => import('./features/auth/pages/register/register').then((m) => m.Register),
+        path: 'not-found',
+        loadComponent: () => import('./shared/pages/not-found/not-found').then((m) => m.NotFound),
+      },
+      { path: '**', redirectTo: 'not-found' },
+    ],
   },
 ];
