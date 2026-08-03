@@ -1,0 +1,16 @@
+<section class="board-column">
+  <header class="board-column-header">
+    <h2 class="board-column-title">{{ column().title }}</h2>
+    <span class="board-column-count">{{ column().cards.length }}</span>
+  </header>
+  @if (column().description) {
+    <p class="board-column-description">{{ column().description }}</p>
+  }
+  <div class="board-column-cards">
+    @for (card of column().cards; track card.id) {
+      <app-board-card [card]="card" />
+    } @empty {
+      <p class="board-column-empty">No cards yet.</p>
+    }
+  </div>
+</section>
