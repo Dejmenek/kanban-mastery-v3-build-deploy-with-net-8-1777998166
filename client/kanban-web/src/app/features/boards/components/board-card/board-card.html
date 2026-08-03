@@ -1,0 +1,12 @@
+<article class="board-card">
+  <h3 class="board-card-title">{{ card().title }}</h3>
+  @if (card().description) {
+    <p class="board-card-description">{{ card().description }}</p>
+  }
+  @if (card().assignedTo; as assignee) {
+    <div class="board-card-assignee">
+      <app-avatar [name]="assignee.userName" [email]="assignee.email" />
+      <span class="board-card-assignee-name">{{ assignee.userName ?? assignee.email ?? 'Unknown' }}</span>
+    </div>
+  }
+</article>
