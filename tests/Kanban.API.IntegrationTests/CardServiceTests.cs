@@ -448,6 +448,43 @@ public class CardServiceTests(IntegrationTestWebAppFactory<Program> factory)
         // Assert
         Assert.True(result.IsSuccess);
         Assert.Equal(card.Id, result.Value.Id);
+        Assert.NotNull(result.Value.AssignedTo);
+        Assert.Equal(member.Id, result.Value.AssignedTo.UserId);
+        Assert.Equal(member.UserName, result.Value.AssignedTo.UserName);
+        Assert.Equal(member.Email, result.Value.AssignedTo.Email);
+
+        var persisted = await UseDbContextAsync(context => context.Cards.SingleAsync(c => c.Id == card.Id, TestContext.Current.CancellationToken));
+        Assert.Equal(member.Id, persisted.AssignedToUserId);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_WithAlreadyAssignedCard_PreservesAndReturnsAssigneeInfo()
+    {
+        // Arrange
+        var owner = await CreateUserAsync("owner@example.com", "Test123!");
+        var board = await UseDbContextAsync(context => BoardTestHelper.SeedBoardAsync(context, owner.Id));
+        var column = await UseDbContextAsync(context =>
+            BoardTestHelper.SeedColumnAsync(context, new Column { BoardId = board.Id, Title = "To Do", Position = 1 }));
+
+        var member = await CreateUserAsync("member@example.com", "Test123!");
+        await UseDbContextAsync(context =>
+            BoardTestHelper.SeedBoardMemberAsync(context, new BoardMember { BoardId = board.Id, MemberId = member.Id, Role = Role.Member }));
+
+        var card = await UseDbContextAsync(context =>
+            BoardTestHelper.SeedCardAsync(context, new Card { ColumnId = column.Id, Title = "Original", Position = 1, AssignedToUserId = member.Id }));
+
+        var request = new UpdateCardRequest("Updated title", "Updated description", column.Id);
+
+        // Act
+        var result = await UseCardServiceAsync(service =>
+            service.UpdateAsync(board.Id, card.Id, request, TestContext.Current.CancellationToken));
+
+        // Assert
+        Assert.True(result.IsSuccess);
+        Assert.NotNull(result.Value.AssignedTo);
+        Assert.Equal(member.Id, result.Value.AssignedTo.UserId);
+        Assert.Equal(member.UserName, result.Value.AssignedTo.UserName);
+        Assert.Equal(member.Email, result.Value.AssignedTo.Email);
 
         var persisted = await UseDbContextAsync(context => context.Cards.SingleAsync(c => c.Id == card.Id, TestContext.Current.CancellationToken));
         Assert.Equal(member.Id, persisted.AssignedToUserId);
