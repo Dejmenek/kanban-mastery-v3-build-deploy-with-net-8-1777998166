@@ -18,6 +18,11 @@ public class CardService(ApplicationDbContext context) : ICardService
         var card = await context.Cards.FirstOrDefaultAsync(c => c.Id == cardId && c.Column.BoardId == boardId, cancellationToken);
         if (card is null) return Result.Failure<CardResponse>(CardErrors.NotFound(cardId));
 
+        var assignedUser = await context.Users
+            .Where(u => u.Id == request.UserId)
+            .Select(u => new { u.Id, u.UserName, u.Email })
+            .FirstAsync(cancellationToken);
+
         card.AssignedToUserId = request.UserId;
         await context.SaveChangesAsync(cancellationToken);
 
@@ -26,7 +31,8 @@ public class CardService(ApplicationDbContext context) : ICardService
             card.Id,
             card.Title,
             card.Description,
-            card.Position
+            card.Position,
+            new CardAssigneeResponse(assignedUser.Id, assignedUser.UserName, assignedUser.Email)
         ));
     }
 
@@ -55,7 +61,8 @@ public class CardService(ApplicationDbContext context) : ICardService
             newCard.Id,
             newCard.Title,
             newCard.Description,
-            newCard.Position
+            newCard.Position,
+            null
         ));
     }
 
@@ -77,6 +84,7 @@ public class CardService(ApplicationDbContext context) : ICardService
         if (string.IsNullOrWhiteSpace(request.Title)) return Result.Failure<CardResponse>(CardErrors.InvalidTitle);
 
         var card = await context.Cards
+            .Include(c => c.AssignedToUser)
             .FirstOrDefaultAsync(c => c.Id == cardId && c.Column.BoardId == boardId, cancellationToken);
 
         if (card is null) return Result.Failure<CardResponse>(CardErrors.NotFound(cardId));
@@ -97,7 +105,9 @@ public class CardService(ApplicationDbContext context) : ICardService
             card.Id,
             card.Title,
             card.Description,
-            card.Position
+            card.Position,
+            card.AssignedToUser is null ? null : new CardAssigneeResponse(
+                card.AssignedToUser.Id, card.AssignedToUser.UserName, card.AssignedToUser.Email)
         ));
     }
 }

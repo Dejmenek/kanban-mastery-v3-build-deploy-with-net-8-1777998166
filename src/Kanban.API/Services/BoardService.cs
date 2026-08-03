@@ -43,7 +43,13 @@ public class BoardService(ApplicationDbContext context) : IBoardService
                         c.Position,
                         c.Cards
                             .OrderBy(ca => ca.Position)
-                            .Select(ca => new CardResponse(ca.Id, ca.Title, ca.Description, ca.Position))
+                            .Select(ca => new CardResponse(
+                            ca.Id,
+                            ca.Title,
+                            ca.Description,
+                            ca.Position,
+                            ca.AssignedToUser == null ? null : new CardAssigneeResponse(
+                                ca.AssignedToUser.Id, ca.AssignedToUser.UserName, ca.AssignedToUser.Email)))
                             .ToList()))
                     .ToList()))
             .FirstOrDefaultAsync(cancellationToken);
