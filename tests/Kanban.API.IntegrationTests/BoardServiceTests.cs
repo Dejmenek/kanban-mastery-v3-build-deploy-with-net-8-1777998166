@@ -116,4 +116,50 @@ public class BoardServiceTests(IntegrationTestWebAppFactory<Program> factory)
         // Assert
         Assert.True(result.IsSuccess);
     }
+
+    [Fact]
+    public async Task GetByIdAsync_WithAssignedCard_ReturnsCardWithAssigneeInfo()
+    {
+        // Arrange
+        var owner = await CreateUserAsync("owner@example.com", "Test123!");
+        var member = await CreateUserAsync("member@example.com", "Test123!");
+        var board = await UseDbContextAsync(context => BoardTestHelper.SeedBoardAsync(context, owner.Id));
+        var column = await UseDbContextAsync(context =>
+            BoardTestHelper.SeedColumnAsync(context, new Column { BoardId = board.Id, Title = "To Do", Position = 1 }));
+        await UseDbContextAsync(context => BoardTestHelper.SeedCardAsync(
+            context, new Card { ColumnId = column.Id, Title = "A card", Position = 1, AssignedToUserId = member.Id }));
+
+        // Act
+        var result = await UseBoardServiceAsync(service =>
+            service.GetByIdAsync(board.Id, TestContext.Current.CancellationToken));
+
+        // Assert
+        Assert.True(result.IsSuccess);
+        var card = Assert.Single(result.Value.Columns.Single().Cards);
+        Assert.NotNull(card.AssignedTo);
+        Assert.Equal(member.Id, card.AssignedTo.UserId);
+        Assert.Equal(member.UserName, card.AssignedTo.UserName);
+        Assert.Equal(member.Email, card.AssignedTo.Email);
+    }
+
+    [Fact]
+    public async Task GetByIdAsync_WithUnassignedCard_ReturnsCardWithNullAssignee()
+    {
+        // Arrange
+        var owner = await CreateUserAsync("owner@example.com", "Test123!");
+        var board = await UseDbContextAsync(context => BoardTestHelper.SeedBoardAsync(context, owner.Id));
+        var column = await UseDbContextAsync(context =>
+            BoardTestHelper.SeedColumnAsync(context, new Column { BoardId = board.Id, Title = "To Do", Position = 1 }));
+        await UseDbContextAsync(context =>
+            BoardTestHelper.SeedCardAsync(context, new Card { ColumnId = column.Id, Title = "A card", Position = 1 }));
+
+        // Act
+        var result = await UseBoardServiceAsync(service =>
+            service.GetByIdAsync(board.Id, TestContext.Current.CancellationToken));
+
+        // Assert
+        Assert.True(result.IsSuccess);
+        var card = Assert.Single(result.Value.Columns.Single().Cards);
+        Assert.Null(card.AssignedTo);
+    }
 }
