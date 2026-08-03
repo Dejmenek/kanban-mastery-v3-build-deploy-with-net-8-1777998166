@@ -1,0 +1,6 @@
+<div class="status-page" [class.status-page-warning]="tone() === 'warning'">
+  <p class="status-page-code" aria-hidden="true">{{ code() }}</p>
+  <h1 class="status-page-heading">{{ heading() }}</h1>
+  <p class="status-page-message">{{ message() }}</p>
+  <a class="status-page-action" [routerLink]="actionLink()">{{ actionLabel() }}</a>
+</div>
