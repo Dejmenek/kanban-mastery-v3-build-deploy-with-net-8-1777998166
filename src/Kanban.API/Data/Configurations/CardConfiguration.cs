@@ -22,6 +22,9 @@ internal class CardConfiguration : IEntityTypeConfiguration<Card>
             .HasForeignKey(x => x.ColumnId)
             .OnDelete(DeleteBehavior.Restrict);
 
+        builder.HasIndex(x => new { x.ColumnId, x.Position })
+            .IsUnique();
+
         builder.HasOne(x => x.AssignedToUser)
             .WithMany()
             .HasForeignKey(x => x.AssignedToUserId)
