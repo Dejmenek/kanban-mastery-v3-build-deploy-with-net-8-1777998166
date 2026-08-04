@@ -33,7 +33,7 @@ public class ColumnService(ApplicationDbContext context, IRetryExecutor retryExe
 
         var count = await context.Columns.CountAsync(c => c.BoardId == boardId, cancellationToken);
 
-        var targetPosition = ResolveTargetPosition(request.Position, count);
+        var targetPosition = PositionResolver.Resolve(request.Position, count);
 
         if (targetPosition <= count)
         {
@@ -108,15 +108,6 @@ public class ColumnService(ApplicationDbContext context, IRetryExecutor retryExe
 
     private static bool IsForeignKeyConstraintViolation(DbUpdateException ex) =>
         ex.InnerException is SqliteException sqliteEx && (sqliteEx.SqliteErrorCode == 19 || sqliteEx.SqliteExtendedErrorCode == 787);
-
-    private static int ResolveTargetPosition(int? requestedPosition, int existingCount)
-    {
-        var hasValidPosition = requestedPosition is int position
-            && position >= 1
-            && position <= existingCount + 1;
-
-        return hasValidPosition ? requestedPosition!.Value : existingCount + 1;
-    }
 
     private async Task ShiftColumnsFromAsync(int boardId, int fromPosition, CancellationToken cancellationToken)
     {
