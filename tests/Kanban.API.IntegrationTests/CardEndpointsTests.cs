@@ -152,39 +152,7 @@ public class CardEndpointsTests(IntegrationTestWebAppFactory<Program> factory)
             BoardTestHelper.SeedBoardMemberAsync(context, new BoardMember { BoardId = board.Id, MemberId = member.Id, Role = Role.Member }));
         await AuthenticateAsAsync(memberEmail, memberPassword);
 
-        var request = new UpdateCardRequest("Updated title", "Updated description", column.Id);
-
-        // Act
-        var response = await Client.PutAsJsonAsync(
-            $"/api/boards/{board.Id}/cards/{card.Id}",
-            request,
-            TestContext.Current.CancellationToken);
-
-        // Assert
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-
-        var body = await response.Content.ReadFromJsonAsync<CardResponse>(TestContext.Current.CancellationToken);
-        Assert.NotNull(body);
-        Assert.Equal(request.Title, body.Title);
-        Assert.Equal(request.Description, body.Description);
-    }
-
-    [Fact]
-    public async Task UpdateCard_MoveToAnotherColumn_ReturnsOk()
-    {
-        // Arrange
-        var owner = await CreateUserAndAuthenticateAsync("owner@example.com", "Test123!");
-        var board = await UseDbContextAsync(context => BoardTestHelper.SeedBoardAsync(context, owner.Id));
-        var (columnA, columnB) = await UseDbContextAsync(async context =>
-        {
-            var colA = await BoardTestHelper.SeedColumnAsync(context, new Column { BoardId = board.Id, Title = "To Do", Position = 1 });
-            var colB = await BoardTestHelper.SeedColumnAsync(context, new Column { BoardId = board.Id, Title = "Done", Position = 2 });
-            return (colA, colB);
-        });
-        var card = await UseDbContextAsync(context =>
-            BoardTestHelper.SeedCardAsync(context, new Card { ColumnId = columnA.Id, Title = "Move me", Position = 1 }));
-
-        var request = new UpdateCardRequest("Move me", null, columnB.Id);
+        var request = new UpdateCardRequest("Updated title", "Updated description");
 
         // Act
         var response = await Client.PutAsJsonAsync(
@@ -217,7 +185,7 @@ public class CardEndpointsTests(IntegrationTestWebAppFactory<Program> factory)
         await CreateUserAsync(nonMemberEmail, nonMemberPassword);
         await AuthenticateAsAsync(nonMemberEmail, nonMemberPassword);
 
-        var request = new UpdateCardRequest("Updated title", null, column.Id);
+        var request = new UpdateCardRequest("Updated title", null);
 
         // Act
         var response = await Client.PutAsJsonAsync(
@@ -240,7 +208,7 @@ public class CardEndpointsTests(IntegrationTestWebAppFactory<Program> factory)
         var card = await UseDbContextAsync(context =>
             BoardTestHelper.SeedCardAsync(context, new Card { ColumnId = column.Id, Title = "Original", Position = 1 }));
 
-        var request = new UpdateCardRequest("   ", null, column.Id);
+        var request = new UpdateCardRequest("   ", null);
 
         // Act
         var response = await Client.PutAsJsonAsync(
@@ -262,7 +230,7 @@ public class CardEndpointsTests(IntegrationTestWebAppFactory<Program> factory)
         var column = await UseDbContextAsync(context =>
             BoardTestHelper.SeedColumnAsync(context, new Column { BoardId = board.Id, Title = "To Do", Position = 1 }));
 
-        var request = new UpdateCardRequest("Updated title", null, column.Id);
+        var request = new UpdateCardRequest("Updated title", null);
 
         // Act
         var response = await Client.PutAsJsonAsync(
@@ -275,7 +243,74 @@ public class CardEndpointsTests(IntegrationTestWebAppFactory<Program> factory)
     }
 
     [Fact]
-    public async Task UpdateCard_MoveToNonExistentColumn_ReturnsNotFound()
+    public async Task MoveCard_AsMember_ReturnsOkAndUpdates()
+    {
+        // Arrange
+        var owner = await CreateUserAsync("owner@example.com", "Test123!");
+        var board = await UseDbContextAsync(context => BoardTestHelper.SeedBoardAsync(context, owner.Id));
+        var (columnA, columnB) = await UseDbContextAsync(async context =>
+        {
+            var colA = await BoardTestHelper.SeedColumnAsync(context, new Column { BoardId = board.Id, Title = "To Do", Position = 1 });
+            var colB = await BoardTestHelper.SeedColumnAsync(context, new Column { BoardId = board.Id, Title = "Done", Position = 2 });
+            return (colA, colB);
+        });
+        var card = await UseDbContextAsync(context =>
+            BoardTestHelper.SeedCardAsync(context, new Card { ColumnId = columnA.Id, Title = "Move me", Position = 1 }));
+
+        var memberEmail = "member@example.com";
+        var memberPassword = "Test123!";
+        var member = await CreateUserAsync(memberEmail, memberPassword);
+        await UseDbContextAsync(context =>
+            BoardTestHelper.SeedBoardMemberAsync(context, new BoardMember { BoardId = board.Id, MemberId = member.Id, Role = Role.Member }));
+        await AuthenticateAsAsync(memberEmail, memberPassword);
+
+        var request = new MoveCardRequest(columnB.Id, 1, columnA.Id, 1);
+
+        // Act
+        var response = await Client.PutAsJsonAsync(
+            $"/api/boards/{board.Id}/cards/{card.Id}/position",
+            request,
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var body = await response.Content.ReadFromJsonAsync<MoveCardResponse>(TestContext.Current.CancellationToken);
+        Assert.NotNull(body);
+        Assert.Equal(columnB.Id, body.ColumnId);
+        Assert.Equal(1, body.Position);
+    }
+
+    [Fact]
+    public async Task MoveCard_AsNonMember_ReturnsForbidden()
+    {
+        // Arrange
+        var owner = await CreateUserAndAuthenticateAsync("owner@example.com", "Test123!");
+        var board = await UseDbContextAsync(context => BoardTestHelper.SeedBoardAsync(context, owner.Id));
+        var column = await UseDbContextAsync(context =>
+            BoardTestHelper.SeedColumnAsync(context, new Column { BoardId = board.Id, Title = "To Do", Position = 1 }));
+        var card = await UseDbContextAsync(context =>
+            BoardTestHelper.SeedCardAsync(context, new Card { ColumnId = column.Id, Title = "Original", Position = 1 }));
+
+        var nonMemberEmail = "nonmember@example.com";
+        var nonMemberPassword = "Test123!";
+        await CreateUserAsync(nonMemberEmail, nonMemberPassword);
+        await AuthenticateAsAsync(nonMemberEmail, nonMemberPassword);
+
+        var request = new MoveCardRequest(column.Id, 1, column.Id, 1);
+
+        // Act
+        var response = await Client.PutAsJsonAsync(
+            $"/api/boards/{board.Id}/cards/{card.Id}/position",
+            request,
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task MoveCard_ToNonExistentColumn_ReturnsNotFound()
     {
         // Arrange
         const int nonExistentColumnId = 999;
@@ -286,16 +321,39 @@ public class CardEndpointsTests(IntegrationTestWebAppFactory<Program> factory)
         var card = await UseDbContextAsync(context =>
             BoardTestHelper.SeedCardAsync(context, new Card { ColumnId = column.Id, Title = "Original", Position = 1 }));
 
-        var request = new UpdateCardRequest("Original", null, nonExistentColumnId);
+        var request = new MoveCardRequest(nonExistentColumnId, 1, column.Id, 1);
 
         // Act
         var response = await Client.PutAsJsonAsync(
-            $"/api/boards/{board.Id}/cards/{card.Id}",
+            $"/api/boards/{board.Id}/cards/{card.Id}/position",
             request,
             TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task MoveCard_WithStaleExpectedState_ReturnsConflict()
+    {
+        // Arrange
+        var owner = await CreateUserAndAuthenticateAsync("owner@example.com", "Test123!");
+        var board = await UseDbContextAsync(context => BoardTestHelper.SeedBoardAsync(context, owner.Id));
+        var column = await UseDbContextAsync(context =>
+            BoardTestHelper.SeedColumnAsync(context, new Column { BoardId = board.Id, Title = "To Do", Position = 1 }));
+        var card = await UseDbContextAsync(context =>
+            BoardTestHelper.SeedCardAsync(context, new Card { ColumnId = column.Id, Title = "Original", Position = 2 }));
+
+        var request = new MoveCardRequest(column.Id, 1, column.Id, 1);
+
+        // Act
+        var response = await Client.PutAsJsonAsync(
+            $"/api/boards/{board.Id}/cards/{card.Id}/position",
+            request,
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
     }
 
     [Fact]
