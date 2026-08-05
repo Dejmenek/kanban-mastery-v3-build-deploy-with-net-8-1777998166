@@ -6,4 +6,5 @@ public record BoardDetailsResponse(
     int Id,
     string Name,
     string? Description,
+    string? UserRole,
     IReadOnlyList<ColumnResponse> Columns);

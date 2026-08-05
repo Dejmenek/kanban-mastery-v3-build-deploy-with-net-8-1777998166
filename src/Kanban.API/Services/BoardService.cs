@@ -26,14 +26,19 @@ public class BoardService(ApplicationDbContext context) : IBoardService
         return Result.Success<IReadOnlyList<BoardSummaryResponse>>(boards);
     }
 
-    public async Task<Result<BoardDetailsResponse>> GetByIdAsync(int boardId, CancellationToken cancellationToken = default)
+    public async Task<Result<BoardDetailsResponse>> GetByIdAsync(int boardId, string userId, CancellationToken cancellationToken = default)
     {
         var board = await context.Boards
             .Where(b => b.Id == boardId)
+            .AsSplitQuery()
             .Select(b => new BoardDetailsResponse(
                 b.Id,
                 b.Name,
                 b.Description,
+                b.Members
+                    .Where(m => m.MemberId == userId)
+                    .Select(m => m.Role.ToString())
+                    .FirstOrDefault(),
                 b.Columns
                     .OrderBy(c => c.Position)
                     .Select(c => new ColumnResponse(
@@ -69,14 +74,14 @@ public class BoardService(ApplicationDbContext context) : IBoardService
         context.BoardsMemberships.Add(membership);
         await context.SaveChangesAsync(cancellationToken);
 
-        var userName = await context.Users
+        var owner = await context.Users
             .Where(u => u.Id == userId)
-            .Select(u => u.UserName)
+            .Select(u => new { u.UserName, u.Email })
             .FirstOrDefaultAsync(cancellationToken);
 
         return new BoardResponse(board.Id, board.Name, board.Description,
         [
-            new BoardMemberResponse(userId, userName, Role.Owner.ToString())
+            new BoardMemberResponse(userId, owner?.UserName, owner?.Email, Role.Owner.ToString())
         ]);
     }
 
