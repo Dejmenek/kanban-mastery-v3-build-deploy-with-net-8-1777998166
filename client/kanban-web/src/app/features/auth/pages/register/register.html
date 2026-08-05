@@ -2,7 +2,7 @@
   <div class="auth-card">
     <h1 class="auth-title">Sign Up</h1>
 
-    <form [formGroup]="registerForm" (ngSubmit)="onSubmit()" class="auth-form" novalidate>
+    <form [formGroup]="registerForm" (ngSubmit)="onSubmit()" class="form" novalidate>
       <div class="form-field">
         <label for="email">Email</label>
         <input
@@ -26,7 +26,7 @@
           formControlName="password"
           [class.has-error]="registerForm.controls.password.invalid && registerForm.controls.password.touched"
         />
-        <span class="password-hint">
+        <span class="form-hint">
           Must be at least 6 characters and include an uppercase letter, a lowercase letter, a digit, and a symbol.
         </span>
         @if (registerForm.controls.password.touched && registerForm.controls.password.hasError('required')) {
