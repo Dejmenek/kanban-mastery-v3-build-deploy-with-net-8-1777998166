@@ -30,6 +30,12 @@ public class BoardEndpointsTests(IntegrationTestWebAppFactory<Program> factory) 
         Assert.NotNull(membership);
         Assert.Equal(boardName, membership.Board.Name);
         Assert.Equal(Role.Owner, membership.Role);
+
+        var member = Assert.Single(content.Members);
+        Assert.Equal(user.Id, member.MemberId);
+        Assert.Equal(user.UserName, member.UserName);
+        Assert.Equal(user.Email, member.Email);
+        Assert.Equal(nameof(Role.Owner), member.Role);
     }
 
     [Fact]
@@ -55,6 +61,7 @@ public class BoardEndpointsTests(IntegrationTestWebAppFactory<Program> factory) 
         Assert.NotNull(body);
         Assert.Equal(newMember.Id, body.MemberId);
         Assert.Equal(newMember.UserName, body.UserName);
+        Assert.Equal(newMember.Email, body.Email);
         Assert.Equal(nameof(Role.Member), body.Role);
 
         var membership = await UseDbContextAsync(context => context.BoardsMemberships
@@ -175,6 +182,46 @@ public class BoardEndpointsTests(IntegrationTestWebAppFactory<Program> factory) 
         var returnedCard = Assert.Single(returnedColumn.Cards);
         Assert.Equal(card.Id, returnedCard.Id);
         Assert.Equal(card.Title, returnedCard.Title);
+
+        var returnedMember = Assert.Single(body.Members);
+        Assert.Equal(owner.Id, returnedMember.MemberId);
+        Assert.Equal(owner.UserName, returnedMember.UserName);
+        Assert.Equal(owner.Email, returnedMember.Email);
+        Assert.Equal(nameof(Role.Owner), returnedMember.Role);
+
+        Assert.Equal(nameof(Role.Owner), body.UserRole);
+    }
+
+    [Fact]
+    public async Task GetById_WithMultipleMembers_ReturnsAllMembersWithEmailAndRole()
+    {
+        // Arrange
+        var owner = await CreateUserAndAuthenticateAsync("owner@example.com", "Test123!");
+        var board = await UseDbContextAsync(context => BoardTestHelper.SeedBoardAsync(context, owner.Id));
+
+        var member = await CreateUserAsync("member@example.com", "Test123!");
+        await UseDbContextAsync(context => BoardTestHelper.SeedBoardMemberAsync(
+            context, new BoardMember { BoardId = board.Id, MemberId = member.Id, Role = Role.Member }));
+
+        // Act
+        var response = await Client.GetAsync($"/api/boards/{board.Id}", TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var body = await response.Content.ReadFromJsonAsync<BoardDetailsResponse>(TestContext.Current.CancellationToken);
+        Assert.NotNull(body);
+        Assert.Equal(2, body.Members.Count);
+
+        var returnedOwner = body.Members.Single(m => m.MemberId == owner.Id);
+        Assert.Equal(owner.UserName, returnedOwner.UserName);
+        Assert.Equal(owner.Email, returnedOwner.Email);
+        Assert.Equal(nameof(Role.Owner), returnedOwner.Role);
+
+        var returnedMember = body.Members.Single(m => m.MemberId == member.Id);
+        Assert.Equal(member.UserName, returnedMember.UserName);
+        Assert.Equal(member.Email, returnedMember.Email);
+        Assert.Equal(nameof(Role.Member), returnedMember.Role);
     }
 
     [Fact]
@@ -202,6 +249,8 @@ public class BoardEndpointsTests(IntegrationTestWebAppFactory<Program> factory) 
         Assert.NotNull(body);
         Assert.Equal(board.Id, body.Id);
         Assert.Equal(board.Name, body.Name);
+        Assert.Equal(2, body.Members.Count);
+        Assert.Equal(nameof(Role.Member), body.UserRole);
     }
 
     [Fact]
@@ -243,6 +292,7 @@ public class BoardEndpointsTests(IntegrationTestWebAppFactory<Program> factory) 
         Assert.NotNull(body);
         Assert.Equal(request.Name, body.Name);
         Assert.Equal(request.Description, body.Description);
+        Assert.Equal(owner.Email, Assert.Single(body.Members).Email);
     }
 
     [Fact]
