@@ -6,7 +6,7 @@
   @if (column().description) {
     <p class="board-column-description">{{ column().description }}</p>
   }
-  <div class="board-column-cards">
+  <div class="board-column-cards" cdkDropList [cdkDropListData]="column().cards" (cdkDropListDropped)="dropped.emit($event)">
     @for (card of column().cards; track card.id) {
       <app-board-card [card]="card" />
     } @empty {
