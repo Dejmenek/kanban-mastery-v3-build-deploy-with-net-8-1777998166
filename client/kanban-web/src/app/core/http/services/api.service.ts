@@ -16,4 +16,8 @@ export class ApiService {
   post<T, R = T>(path: string, body: T, options?: HttpClientCommonOptions): Observable<R> {
     return this.http.post<R>(`${this.baseUrl}${path}`, body, options);
   }
+
+  put<T, R = T>(path: string, body: T, options?: HttpClientCommonOptions): Observable<R> {
+    return this.http.put<R>(`${this.baseUrl}${path}`, body, options);
+  }
 }
