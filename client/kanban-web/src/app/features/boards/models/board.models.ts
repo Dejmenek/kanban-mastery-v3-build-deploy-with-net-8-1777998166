@@ -69,3 +69,9 @@ export interface BoardMemberResponse {
   email: string | null;
   role: string;
 }
+
+export interface CreateCardRequest {
+  title: string;
+  description: string | null;
+  columnId: number;
+}

@@ -66,6 +66,27 @@
   text-align: center;
 }
 
+.board-column-add-btn {
+  width: calc(100% - var(--space-4) * 2);
+  margin: 0 var(--space-4) var(--space-4);
+  padding: var(--space-2);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--color-text-dim);
+  background: transparent;
+  border: var(--border-width-md) dashed var(--color-text-dim);
+  cursor: pointer;
+}
+
+.board-column-add-btn:hover {
+  color: var(--color-text);
+  border-color: var(--color-text);
+}
+
+.board-column-add-form {
+  padding: 0 var(--space-4) var(--space-4);
+}
+
 @media (max-width: 768px) {
   :host {
     flex: 1 1 auto;

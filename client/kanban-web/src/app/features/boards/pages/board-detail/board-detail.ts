@@ -39,6 +39,12 @@ export class BoardDetail {
     });
   }
 
+  onCardCreated(columnId: number, card: CardResponse): void {
+    this.columns.update((cols) =>
+      cols.map((column) => (column.id === columnId ? { ...column, cards: [...column.cards, card] } : column)),
+    );
+  }
+
   onCardDropped(event: CdkDragDrop<CardResponse[]>): void {
     const card = event.item.data as CardResponse;
     const expectedColumnId = this.findColumnIdForCards(event.previousContainer.data);

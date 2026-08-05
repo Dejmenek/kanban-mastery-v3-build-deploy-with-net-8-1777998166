@@ -28,7 +28,12 @@
 
   <div class="board-columns" cdkDropListGroup>
     @for (column of columns(); track column.id) {
-      <app-board-column [column]="column" (dropped)="onCardDropped($event)" />
+      <app-board-column
+        [column]="column"
+        [boardId]="board().id"
+        (dropped)="onCardDropped($event)"
+        (cardCreated)="onCardCreated(column.id, $event)"
+      />
     } @empty {
       <p class="board-detail-empty">This board has no columns yet.</p>
     }
