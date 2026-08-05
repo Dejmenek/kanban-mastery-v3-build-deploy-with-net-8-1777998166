@@ -1,29 +1,43 @@
-import { Component, inject, input, linkedSignal, signal } from '@angular/core';
+import { Component, computed, inject, input, linkedSignal, signal } from '@angular/core';
 import { BoardColumn } from '../../components/board-column/board-column';
 import {
   AffectedColumnResponse,
   BoardDetailsResponse,
+  BoardMemberResponse,
   CardResponse,
   ColumnResponse,
   MoveCardRequest,
 } from '../../models/board.models';
 import { BoardService } from '../../services/board.service';
 import { CdkDragDrop, CdkDropListGroup, moveItemInArray, transferArrayItem } from '@angular/cdk/drag-drop';
+import { Dialog, DialogModule } from '@angular/cdk/dialog';
+import { InviteModal } from '../../components/invite-modal/invite-modal';
+import { Avatar } from '../../../../shared/components/avatar/avatar';
 
 @Component({
   selector: 'app-board-detail',
   templateUrl: './board-detail.html',
   styleUrl: './board-detail.css',
-  imports: [BoardColumn, CdkDropListGroup],
+  imports: [BoardColumn, CdkDropListGroup, DialogModule, Avatar],
 })
 export class BoardDetail {
   board = input.required<BoardDetailsResponse>();
+  dialog = inject(Dialog);
 
   private boardService = inject(BoardService);
   private columnGeneration = new Map<number, number>();
 
   protected columns = linkedSignal(() => this.cloneColumns(this.board().columns));
+  protected members = linkedSignal(() => this.board().members);
   protected moveError = signal<string | null>(null);
+  protected isOwner = computed(() => this.board().userRole === 'Owner');
+
+  openDialog() {
+    const dialogRef = this.dialog.open<BoardMemberResponse>(InviteModal, { data: { boardId: this.board().id } });
+    dialogRef.closed.subscribe((member) => {
+      if (member) this.members.update((current) => [...current, member]);
+    });
+  }
 
   onCardDropped(event: CdkDragDrop<CardResponse[]>): void {
     const card = event.item.data as CardResponse;
@@ -130,6 +144,7 @@ export class BoardDetail {
   private refetchBoard(): void {
     this.boardService.getById(this.board().id).subscribe((board) => {
       this.columns.set(this.cloneColumns(board.columns));
+      this.members.set(board.members);
     });
   }
 
