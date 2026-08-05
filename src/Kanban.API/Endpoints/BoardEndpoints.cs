@@ -57,7 +57,7 @@ public static class BoardEndpoints
             return TypedResults.Forbid();
         }
 
-        var result = await boardService.GetByIdAsync(boardId, cancellationToken);
+        var result = await boardService.GetByIdAsync(boardId, userId, cancellationToken);
         if (result.IsFailure)
         {
             return result.Error.ToTypedResult();
