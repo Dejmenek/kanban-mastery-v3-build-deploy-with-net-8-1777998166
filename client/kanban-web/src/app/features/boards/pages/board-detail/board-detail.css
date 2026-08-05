@@ -30,6 +30,13 @@
   padding-bottom: var(--space-4);
 }
 
+.board-detail-error {
+  margin-bottom: var(--space-4);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--color-error);
+}
+
 .board-detail-empty {
   font-family: var(--font-mono);
   font-size: var(--text-sm);
