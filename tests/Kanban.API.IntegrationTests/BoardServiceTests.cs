@@ -131,7 +131,7 @@ public class BoardServiceTests(IntegrationTestWebAppFactory<Program> factory)
 
         // Act
         var result = await UseBoardServiceAsync(service =>
-            service.GetByIdAsync(board.Id, TestContext.Current.CancellationToken));
+            service.GetByIdAsync(board.Id, owner.Id, TestContext.Current.CancellationToken));
 
         // Assert
         Assert.True(result.IsSuccess);
@@ -140,6 +140,59 @@ public class BoardServiceTests(IntegrationTestWebAppFactory<Program> factory)
         Assert.Equal(member.Id, card.AssignedTo.UserId);
         Assert.Equal(member.UserName, card.AssignedTo.UserName);
         Assert.Equal(member.Email, card.AssignedTo.Email);
+    }
+
+    [Fact]
+    public async Task GetByIdAsync_ReturnsBoardMembersWithEmailAndRole()
+    {
+        // Arrange
+        var owner = await CreateUserAsync("owner@example.com", "Test123!");
+        var member = await CreateUserAsync("member@example.com", "Test123!");
+        var board = await UseDbContextAsync(context => BoardTestHelper.SeedBoardAsync(context, owner.Id));
+        await UseDbContextAsync(context => BoardTestHelper.SeedBoardMemberAsync(
+            context, new BoardMember { BoardId = board.Id, MemberId = member.Id, Role = Role.Member }));
+
+        // Act
+        var result = await UseBoardServiceAsync(service =>
+            service.GetByIdAsync(board.Id, owner.Id, TestContext.Current.CancellationToken));
+
+        // Assert
+        Assert.True(result.IsSuccess);
+        Assert.Equal(2, result.Value.Members.Count);
+
+        var returnedOwner = result.Value.Members.Single(m => m.MemberId == owner.Id);
+        Assert.Equal(owner.UserName, returnedOwner.UserName);
+        Assert.Equal(owner.Email, returnedOwner.Email);
+        Assert.Equal(nameof(Role.Owner), returnedOwner.Role);
+
+        var returnedMember = result.Value.Members.Single(m => m.MemberId == member.Id);
+        Assert.Equal(member.UserName, returnedMember.UserName);
+        Assert.Equal(member.Email, returnedMember.Email);
+        Assert.Equal(nameof(Role.Member), returnedMember.Role);
+    }
+
+    [Fact]
+    public async Task GetByIdAsync_ReturnsUserRoleForRequestingUser()
+    {
+        // Arrange
+        var owner = await CreateUserAsync("owner@example.com", "Test123!");
+        var member = await CreateUserAsync("member@example.com", "Test123!");
+        var board = await UseDbContextAsync(context => BoardTestHelper.SeedBoardAsync(context, owner.Id));
+        await UseDbContextAsync(context => BoardTestHelper.SeedBoardMemberAsync(
+            context, new BoardMember { BoardId = board.Id, MemberId = member.Id, Role = Role.Member }));
+
+        // Act
+        var ownerResult = await UseBoardServiceAsync(service =>
+            service.GetByIdAsync(board.Id, owner.Id, TestContext.Current.CancellationToken));
+        var memberResult = await UseBoardServiceAsync(service =>
+            service.GetByIdAsync(board.Id, member.Id, TestContext.Current.CancellationToken));
+
+        // Assert
+        Assert.True(ownerResult.IsSuccess);
+        Assert.Equal(nameof(Role.Owner), ownerResult.Value.UserRole);
+
+        Assert.True(memberResult.IsSuccess);
+        Assert.Equal(nameof(Role.Member), memberResult.Value.UserRole);
     }
 
     [Fact]
@@ -155,7 +208,7 @@ public class BoardServiceTests(IntegrationTestWebAppFactory<Program> factory)
 
         // Act
         var result = await UseBoardServiceAsync(service =>
-            service.GetByIdAsync(board.Id, TestContext.Current.CancellationToken));
+            service.GetByIdAsync(board.Id, owner.Id, TestContext.Current.CancellationToken));
 
         // Assert
         Assert.True(result.IsSuccess);
