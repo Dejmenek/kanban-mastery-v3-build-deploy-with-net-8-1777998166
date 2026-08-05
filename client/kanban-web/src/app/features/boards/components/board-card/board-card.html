@@ -1,4 +1,4 @@
-<article class="board-card">
+<article class="board-card" cdkDrag [cdkDragData]="card()">
   <h3 class="board-card-title">{{ card().title }}</h3>
   @if (card().description) {
     <p class="board-card-description">{{ card().description }}</p>
