@@ -11,15 +11,16 @@
   "private": true,
   "packageManager": "npm@10.9.8",
   "dependencies": {
+    "@angular/cdk": "^22.1.0",
     "@angular/common": "^22.0.0",
     "@angular/compiler": "^22.0.0",
     "@angular/core": "^22.0.0",
     "@angular/forms": "^22.0.0",
     "@angular/platform-browser": "^22.0.0",
     "@angular/router": "^22.0.0",
+    "jest-editor-support": "*",
     "rxjs": "~7.8.0",
-    "tslib": "^2.3.0",
-    "jest-editor-support": "*"
+    "tslib": "^2.3.0"
   },
   "devDependencies": {
     "@angular/build": "^22.0.7",
