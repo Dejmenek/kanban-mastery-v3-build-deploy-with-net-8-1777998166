@@ -39,6 +39,9 @@ public class BoardService(ApplicationDbContext context) : IBoardService
                     .Where(m => m.MemberId == userId)
                     .Select(m => m.Role.ToString())
                     .FirstOrDefault(),
+                b.Members
+                    .Select(m => new BoardMemberResponse(m.MemberId, m.Member.UserName, m.Member.Email, m.Role.ToString()))
+                    .ToList(),
                 b.Columns
                     .OrderBy(c => c.Position)
                     .Select(c => new ColumnResponse(
@@ -125,7 +128,7 @@ public class BoardService(ApplicationDbContext context) : IBoardService
         context.BoardsMemberships.Add(newMember);
         await context.SaveChangesAsync(cancellationToken);
 
-        return new BoardMemberResponse(userToAdd.Id, userToAdd.UserName, newMember.Role.ToString());
+        return new BoardMemberResponse(userToAdd.Id, userToAdd.UserName, userToAdd.Email, newMember.Role.ToString());
     }
 
     public async Task<Result<BoardResponse>> UpdateAsync(
@@ -151,7 +154,7 @@ public class BoardService(ApplicationDbContext context) : IBoardService
         await context.SaveChangesAsync(cancellationToken);
 
         var members = board.Members
-            .Select(m => new BoardMemberResponse(m.MemberId, m.Member.UserName, m.Role.ToString()))
+            .Select(m => new BoardMemberResponse(m.MemberId, m.Member.UserName, m.Member.Email, m.Role.ToString()))
             .ToList();
 
         return new BoardResponse(board.Id, board.Name, board.Description, members);
