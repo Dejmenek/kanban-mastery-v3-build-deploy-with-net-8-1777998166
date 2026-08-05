@@ -162,7 +162,8 @@ h1, h2, h3, h4, h5, h6 {
   color: var(--color-text);
 }
 
-.form-field input {
+.form-field input,
+.form-field textarea {
   font-family: var(--font-mono);
   font-size: var(--text-base);
   color: var(--color-text);
@@ -173,17 +174,25 @@ h1, h2, h3, h4, h5, h6 {
   transition: border-color var(--transition-fast) var(--transition-timing);
 }
 
-.form-field input::placeholder {
+.form-field textarea {
+  resize: vertical;
+  min-height: 5rem;
+}
+
+.form-field input::placeholder,
+.form-field textarea::placeholder {
   color: var(--color-text-dim);
 }
 
-.form-field input:focus {
+.form-field input:focus,
+.form-field textarea:focus {
   outline: var(--focus-ring-width) solid var(--focus-ring-color);
   outline-offset: var(--focus-ring-offset);
   border-color: var(--color-accent);
 }
 
-.form-field input.has-error {
+.form-field input.has-error,
+.form-field textarea.has-error {
   border-color: var(--color-error);
 }
 
