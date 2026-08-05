@@ -8,6 +8,8 @@ export interface BoardDetailsResponse {
   id: number;
   name: string;
   description: string | null;
+  userRole: string | null;
+  members: BoardMemberResponse[];
   columns: ColumnResponse[];
 }
 
@@ -55,4 +57,15 @@ export interface AffectedColumnResponse {
 export interface CardPositionResponse {
   cardId: number;
   position: number;
+}
+
+export interface AddBoardMemberRequest {
+  email: string;
+}
+
+export interface BoardMemberResponse {
+  memberId: string;
+  userName: string | null;
+  email: string | null;
+  role: string;
 }
