@@ -6,9 +6,13 @@
     }
   </header>
 
-  <div class="board-columns">
-    @for (column of board().columns; track column.id) {
-      <app-board-column [column]="column" />
+  @if (moveError(); as error) {
+    <p class="board-detail-error">{{ error }}</p>
+  }
+
+  <div class="board-columns" cdkDropListGroup>
+    @for (column of columns(); track column.id) {
+      <app-board-column [column]="column" (dropped)="onCardDropped($event)" />
     } @empty {
       <p class="board-detail-empty">This board has no columns yet.</p>
     }
