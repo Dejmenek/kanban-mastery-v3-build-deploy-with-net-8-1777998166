@@ -1,9 +1,25 @@
 <div class="board-detail">
   <header class="board-detail-header">
-    <h1 class="board-detail-title">{{ board().name }}</h1>
-    @if (board().description) {
-      <p class="board-detail-description">{{ board().description }}</p>
-    }
+    <div>
+      <h1 class="board-detail-title">{{ board().name }}</h1>
+      @if (board().description) {
+        <p class="board-detail-description">{{ board().description }}</p>
+      }
+    </div>
+
+    <div class="board-detail-members-row">
+      <div class="board-detail-members" aria-label="Board members">
+        @for (member of members(); track member.memberId) {
+          <div class="board-member">
+            <app-avatar [name]="member.userName" [email]="member.email" />
+            <span class="board-member-name">{{ member.userName ?? member.email ?? 'Unknown' }}</span>
+          </div>
+        }
+      </div>
+      @if (isOwner()) {
+        <button class="btn-primary btn-sm" (click)="openDialog()">Invite</button>
+      }
+    </div>
   </header>
 
   @if (moveError(); as error) {

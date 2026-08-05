@@ -1,0 +1,40 @@
+<div class="invite-modal-header">
+  <h2 class="invite-modal-title">Invite Member</h2>
+  <button type="button" class="invite-modal-close" aria-label="Close" (click)="dialogRef.close()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <line x1="5" y1="5" x2="19" y2="19" />
+      <line x1="19" y1="5" x2="5" y2="19" />
+    </svg>
+  </button>
+</div>
+
+<form [formGroup]="inviteForm" (ngSubmit)="onSubmit()" class="form" novalidate>
+  <div class="form-field">
+    <label for="email">Email</label>
+    <input
+      id="email"
+      type="email"
+      formControlName="email"
+      placeholder="teammate@example.com"
+      [class.has-error]="inviteForm.controls.email.invalid && inviteForm.controls.email.touched"
+    />
+    @if (inviteForm.controls.email.touched && inviteForm.controls.email.hasError('required')) {
+      <span class="field-error">Email is required.</span>
+    } @else if (inviteForm.controls.email.touched && inviteForm.controls.email.hasError('email')) {
+      <span class="field-error">Enter a valid email address.</span>
+    }
+  </div>
+
+  @if (errorMessage()) {
+    <div class="form-error" role="alert">{{ errorMessage() }}</div>
+  }
+
+  <div class="form-actions">
+    <button type="button" class="btn-secondary" [disabled]="isSubmitting()" (click)="dialogRef.close()">
+      Cancel
+    </button>
+    <button type="submit" class="btn-primary" [disabled]="!inviteForm.valid || isSubmitting()">
+      {{ isSubmitting() ? 'Inviting...' : 'Invite' }}
+    </button>
+  </div>
+</form>
