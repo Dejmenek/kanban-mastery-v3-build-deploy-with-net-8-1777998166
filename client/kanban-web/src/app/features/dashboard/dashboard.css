@@ -4,6 +4,10 @@
 }
 
 .dashboard-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
   margin-bottom: var(--space-8);
 }
 
@@ -13,6 +17,15 @@
   font-weight: var(--font-weight-bold);
   color: var(--color-text);
   letter-spacing: var(--tracking-tight);
+}
+
+.dashboard-create-form {
+  max-width: 28rem;
+  margin-bottom: var(--space-8);
+  padding: var(--space-6);
+  background-color: var(--color-surface);
+  border: var(--border-width-sm) solid var(--color-border);
+  box-shadow: var(--shadow-sm);
 }
 
 .board-grid {
