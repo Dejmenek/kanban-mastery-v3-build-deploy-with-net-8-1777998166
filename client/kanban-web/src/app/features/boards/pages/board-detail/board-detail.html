@@ -1,11 +1,42 @@
 <div class="board-detail">
   <header class="board-detail-header">
-    <div>
-      <h1 class="board-detail-title">{{ board().name }}</h1>
-      @if (board().description) {
-        <p class="board-detail-description">{{ board().description }}</p>
-      }
-    </div>
+    @if (!isEditingBoard()) {
+      <div>
+        <div class="board-detail-title-row">
+          <h1 class="board-detail-title">{{ boardName() }}</h1>
+          @if (isOwner()) {
+            <button type="button" class="btn-secondary btn-sm" (click)="onEditBoard()">Edit</button>
+          }
+        </div>
+        @if (boardDescription()) {
+          <p class="board-detail-description">{{ boardDescription() }}</p>
+        }
+      </div>
+    } @else {
+      <form class="form board-detail-edit-form" [formGroup]="editBoardForm" (ngSubmit)="onEditBoardSubmit()" novalidate>
+        <div class="form-field">
+          <input type="text"
+                 formControlName="name"
+                 placeholder="Board name"
+                 [class.has-error]="editBoardForm.controls.name.invalid && editBoardForm.controls.name.touched" />
+          @if (editBoardForm.controls.name.touched && editBoardForm.controls.name.hasError('required')) {
+          <span class="field-error">Name is required.</span>
+          }
+        </div>
+        <div class="form-field">
+          <textarea formControlName="description" placeholder="Description (optional)"></textarea>
+        </div>
+        @if (editErrorMessage(); as error) {
+        <div class="form-error" role="alert">{{ error }}</div>
+        }
+        <div class="form-actions">
+          <button type="button" class="btn-secondary btn-sm" [disabled]="isSubmittingEdit()" (click)="onEditBoardCancel()">Cancel</button>
+          <button type="submit" class="btn-primary btn-sm" [disabled]="!editBoardForm.valid || isSubmittingEdit()">
+            {{ isSubmittingEdit() ? 'Saving...' : 'Save' }}
+          </button>
+        </div>
+      </form>
+    }
 
     <div class="board-detail-members-row">
       <div class="board-detail-members" aria-label="Board members">
