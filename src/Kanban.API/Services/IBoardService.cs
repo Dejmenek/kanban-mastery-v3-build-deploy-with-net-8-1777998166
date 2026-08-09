@@ -9,7 +9,7 @@ public interface IBoardService
 
     Task<Result<IReadOnlyList<BoardSummaryResponse>>> GetAllForUserAsync(string userId, CancellationToken cancellationToken = default);
 
-    Task<Result<BoardResponse>> CreateAsync(CreateBoardRequest request, string userId, CancellationToken cancellationToken = default);
+    Task<Result<BoardSummaryResponse>> CreateAsync(CreateBoardRequest request, string userId, CancellationToken cancellationToken = default);
 
     Task<Result<BoardMemberResponse>> AddMemberAsync(int boardId, AddBoardMemberRequest request, CancellationToken cancellationToken = default);
 
