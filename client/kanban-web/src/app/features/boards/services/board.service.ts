@@ -41,4 +41,9 @@ export class BoardService {
     return this.api
       .put<UpdateBoardRequest, BoardResponse>(`/api/boards/${boardId}`, request);
   }
+
+  deleteBoard(boardId: number) {
+    return this.api
+      .delete<void>(`/api/boards/${boardId}`);
+  }
 }
