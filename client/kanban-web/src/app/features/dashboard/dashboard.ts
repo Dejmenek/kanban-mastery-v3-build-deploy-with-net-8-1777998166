@@ -6,6 +6,8 @@ import { FormGroup, FormControl, ReactiveFormsModule, Validators } from '@angula
 import { CreateBoardRequest } from '../boards/models/board.models';
 import { finalize } from 'rxjs';
 import { HttpErrorResponse } from '@angular/common/http';
+import { Dialog } from '@angular/cdk/dialog';
+import { ConfirmModal } from '../../shared/components/confirm-modal/confirm-modal';
 
 @Component({
   selector: 'app-dashboard',
@@ -14,6 +16,7 @@ import { HttpErrorResponse } from '@angular/common/http';
   imports: [RouterLink, ReactiveFormsModule],
 })
 export class Dashboard {
+  dialog = inject(Dialog);
   private boardService = inject(BoardService);
   protected isCreating = signal(false);
   protected errorMessage = signal<string | null>(null);
@@ -28,6 +31,9 @@ export class Dashboard {
   });
 
   protected boards = linkedSignal(() => this.boardsResource.value() ?? []);
+
+  protected deleteErrorMessage = signal<string | null>(null);
+  protected deletingBoardId = signal<number | null>(null);
 
   protected onSubmit() {
     if (this.createBoardForm.invalid) {
@@ -52,7 +58,8 @@ export class Dashboard {
           this.createBoardForm.reset();
           this.isCreating.set(false);
         },
-        error: (err: HttpErrorResponse) => this.errorMessage.set(this.extractErrorMessage(err)),
+        error: (err: HttpErrorResponse) =>
+          this.errorMessage.set(this.extractErrorMessage(err, 'Could not create board. Please try again.')),
       });
   }
 
@@ -62,8 +69,34 @@ export class Dashboard {
     this.isCreating.set(false);
   }
 
-  private extractErrorMessage(err: HttpErrorResponse): string {
+  protected openConfirmDialog(boardId: number) {
+    this.deletingBoardId.set(boardId);
+
+    const dialogRef = this.dialog.open<boolean>(ConfirmModal);
+    dialogRef.closed.subscribe((isConfirmed) => {
+      if (isConfirmed) {
+        this.deleteBoard(boardId);
+      } else {
+        this.deletingBoardId.set(null);
+      }
+    });
+  }
+
+  private deleteBoard(boardId: number) {
+    this.deleteErrorMessage.set(null);
+
+    this.boardService
+      .deleteBoard(boardId)
+      .pipe(finalize(() => this.deletingBoardId.set(null)))
+      .subscribe({
+        next: () => this.boards.update((boards) => boards.filter((board) => board.id !== boardId)),
+        error: (err: HttpErrorResponse) =>
+          this.deleteErrorMessage.set(this.extractErrorMessage(err, 'Could not delete board. Please try again.')),
+      });
+  }
+
+  private extractErrorMessage(err: HttpErrorResponse, fallback: string): string {
     if (typeof err.error === 'string' && err.error.length > 0) return err.error;
-    return 'Could not create board. Please try again.';
+    return fallback;
   }
 }
