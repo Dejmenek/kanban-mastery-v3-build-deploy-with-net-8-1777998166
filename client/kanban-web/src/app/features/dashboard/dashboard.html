@@ -32,6 +32,10 @@
   </form>
   }
 
+  @if (deleteErrorMessage(); as deleteError) {
+  <div class="form-error" role="alert">{{ deleteError }}</div>
+  }
+
   @if (boardsResource.isLoading()) {
     <div class="board-grid" aria-busy="true" aria-label="Loading boards">
       @for (i of [1, 2, 3, 4, 5, 6]; track i) {
@@ -45,11 +49,21 @@
   } @else if (boards().length) {
     <div class="board-grid">
       @for (board of boards(); track board.id) {
-        <article class="board-card">
-          <h2 class="board-card-title">{{ board.name }}</h2>
-          <span class="board-card-role">{{ board.userRole }}</span>
+      <article class="board-card">
+        <h2 class="board-card-title">{{ board.name }}</h2>
+        <span class="board-card-role">{{ board.userRole }}</span>
+        <div class="board-card-actions">
           <a class="board-card-link" [routerLink]="['/board', board.id]">View</a>
-        </article>
+          @if (board.userRole === 'Owner') {
+            <button type="button"
+                    class="btn-danger btn-sm"
+                    [disabled]="deletingBoardId() === board.id"
+                    (click)="openConfirmDialog(board.id)">
+              {{ deletingBoardId() === board.id ? 'Deleting...' : 'Delete' }}
+            </button>
+          }
+        </div>
+      </article>
       }
     </div>
   } @else {
