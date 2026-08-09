@@ -9,7 +9,7 @@ export class ApiService {
   private baseUrl = environment.apiUrl;
   private http = inject(HttpClient);
 
-  get<T>(path: string) {
+  get<T>(path: string): Observable<T> {
     return this.http.get<T>(`${this.baseUrl}${path}`);
   }
 
@@ -19,5 +19,9 @@ export class ApiService {
 
   put<T, R = T>(path: string, body: T, options?: HttpClientCommonOptions): Observable<R> {
     return this.http.put<R>(`${this.baseUrl}${path}`, body, options);
+  }
+
+  delete<T>(path: string): Observable<T> {
+    return this.http.delete<T>(`${this.baseUrl}${path}`);
   }
 }
