@@ -13,8 +13,8 @@ export interface InviteModalData {
 @Component({
   selector: 'app-invite-modal',
   templateUrl: './invite-modal.html',
-  styleUrl: './invite-modal.css',
   imports: [ReactiveFormsModule],
+  host: { class: 'modal-panel' },
 })
 export class InviteModal {
   private data = inject<InviteModalData>(DIALOG_DATA);
