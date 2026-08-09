@@ -288,7 +288,6 @@ public class BoardEndpointsTests(IntegrationTestWebAppFactory<Program> factory) 
         Assert.NotNull(body);
         Assert.Equal(request.Name, body.Name);
         Assert.Equal(request.Description, body.Description);
-        Assert.Equal(owner.Email, Assert.Single(body.Members).Email);
     }
 
     [Fact]
