@@ -16,13 +16,6 @@ public static class BoardEndpoints
 
         boards.MapGet("/", GetAllForUser);
         boards.MapPost("/", CreateBoard);
-        boards.MapPost("/{boardId:int}/members", AddMember)
-            .Produces<BoardMemberResponse>(StatusCodes.Status201Created)
-            .Produces(StatusCodes.Status401Unauthorized)
-            .Produces(StatusCodes.Status403Forbidden)
-            .Produces<string>(StatusCodes.Status400BadRequest)
-            .Produces<string>(StatusCodes.Status404NotFound)
-            .Produces<string>(StatusCodes.Status409Conflict);
         boards.MapGet("/{boardId:int}", GetById)
             .Produces<BoardDetailsResponse>(StatusCodes.Status200OK)
             .Produces(StatusCodes.Status401Unauthorized)
@@ -91,33 +84,6 @@ public static class BoardEndpoints
         var result = await boardService.CreateAsync(request, userId, cancellationToken);
 
         return TypedResults.Created<BoardSummaryResponse>($"/api/boards/{result.Value.Id}", result.Value);
-    }
-
-    private static async Task<IResult> AddMember(
-        int boardId,
-        AddBoardMemberRequest request,
-        IAuthorizationService authService,
-        IBoardService boardService, ClaimsPrincipal user, CancellationToken cancellationToken)
-    {
-        var userId = user.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (userId is null)
-        {
-            return TypedResults.Unauthorized();
-        }
-
-        var authResult = await authService.AuthorizeAsync(user, boardId, "IsBoardOwner");
-        if (!authResult.Succeeded)
-        {
-            return TypedResults.Forbid();
-        }
-
-        var result = await boardService.AddMemberAsync(boardId, request, cancellationToken);
-        if (result.IsFailure)
-        {
-            return result.Error.ToTypedResult();
-        }
-
-        return TypedResults.Created<BoardMemberResponse>($"/api/boards/{boardId}/members/{result.Value.MemberId}", result.Value);
     }
 
     private static async Task<IResult> UpdateBoard(
