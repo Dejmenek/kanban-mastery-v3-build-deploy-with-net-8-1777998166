@@ -21,8 +21,10 @@ public class BoardEndpointsTests(IntegrationTestWebAppFactory<Program> factory) 
         // Assert
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
 
-        var content = await response.Content.ReadFromJsonAsync<BoardResponse>(TestContext.Current.CancellationToken);
+        var content = await response.Content.ReadFromJsonAsync<BoardSummaryResponse>(TestContext.Current.CancellationToken);
         Assert.NotNull(content);
+        Assert.Equal(boardName, content.Name);
+        Assert.Equal(nameof(Role.Owner), content.UserRole);
 
         var membership = await UseDbContextAsync(context => context.BoardsMemberships
             .Include(bm => bm.Board)
@@ -30,12 +32,6 @@ public class BoardEndpointsTests(IntegrationTestWebAppFactory<Program> factory) 
         Assert.NotNull(membership);
         Assert.Equal(boardName, membership.Board.Name);
         Assert.Equal(Role.Owner, membership.Role);
-
-        var member = Assert.Single(content.Members);
-        Assert.Equal(user.Id, member.MemberId);
-        Assert.Equal(user.UserName, member.UserName);
-        Assert.Equal(user.Email, member.Email);
-        Assert.Equal(nameof(Role.Owner), member.Role);
     }
 
     [Fact]
