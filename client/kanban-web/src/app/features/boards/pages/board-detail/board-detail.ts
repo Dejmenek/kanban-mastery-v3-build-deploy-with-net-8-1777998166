@@ -7,18 +7,22 @@ import {
   CardResponse,
   ColumnResponse,
   MoveCardRequest,
+  UpdateBoardRequest,
 } from '../../models/board.models';
 import { BoardService } from '../../services/board.service';
 import { CdkDragDrop, CdkDropListGroup, moveItemInArray, transferArrayItem } from '@angular/cdk/drag-drop';
 import { Dialog, DialogModule } from '@angular/cdk/dialog';
 import { InviteModal } from '../../components/invite-modal/invite-modal';
 import { Avatar } from '../../../../shared/components/avatar/avatar';
+import { FormGroup, FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
+import { HttpErrorResponse } from '@angular/common/http';
+import { finalize } from 'rxjs';
 
 @Component({
   selector: 'app-board-detail',
   templateUrl: './board-detail.html',
   styleUrl: './board-detail.css',
-  imports: [BoardColumn, CdkDropListGroup, DialogModule, Avatar],
+  imports: [BoardColumn, CdkDropListGroup, DialogModule, Avatar, ReactiveFormsModule],
 })
 export class BoardDetail {
   board = input.required<BoardDetailsResponse>();
@@ -29,14 +33,68 @@ export class BoardDetail {
 
   protected columns = linkedSignal(() => this.cloneColumns(this.board().columns));
   protected members = linkedSignal(() => this.board().members);
+  protected boardName = linkedSignal(() => this.board().name);
+  protected boardDescription = linkedSignal(() => this.board().description);
   protected moveError = signal<string | null>(null);
   protected isOwner = computed(() => this.board().userRole === 'Owner');
+
+  protected isEditingBoard = signal(false);
+  protected editErrorMessage = signal<string | null>(null);
+  protected isSubmittingEdit = signal(false);
+  protected editBoardForm = new FormGroup({
+    name: new FormControl('', Validators.required),
+    description: new FormControl(''),
+  });
 
   openDialog() {
     const dialogRef = this.dialog.open<BoardMemberResponse>(InviteModal, { data: { boardId: this.board().id } });
     dialogRef.closed.subscribe((member) => {
       if (member) this.members.update((current) => [...current, member]);
     });
+  }
+
+  onEditBoard() {
+    this.editBoardForm.setValue({ name: this.boardName(), description: this.boardDescription() ?? '' });
+    this.editErrorMessage.set(null);
+    this.isEditingBoard.set(true);
+  }
+
+  onEditBoardSubmit() {
+    if (this.editBoardForm.invalid) {
+      this.editBoardForm.markAllAsTouched();
+      return;
+    }
+
+    this.editErrorMessage.set(null);
+    this.isSubmittingEdit.set(true);
+
+    const request: UpdateBoardRequest = {
+      name: this.editBoardForm.value.name!,
+      description: this.editBoardForm.value.description || null,
+    };
+
+    this.boardService
+      .updateBoard(this.board().id, request)
+      .pipe(finalize(() => this.isSubmittingEdit.set(false)))
+      .subscribe({
+        next: (updated) => {
+          this.boardName.set(updated.name);
+          this.boardDescription.set(updated.description);
+          this.isEditingBoard.set(false);
+        },
+        error: (err: HttpErrorResponse) => this.editErrorMessage.set(this.extractErrorMessage(err)),
+      });
+  }
+
+  onEditBoardCancel() {
+    this.editBoardForm.reset();
+    this.editErrorMessage.set(null);
+    this.isEditingBoard.set(false);
+  }
+
+  private extractErrorMessage(err: HttpErrorResponse): string {
+    if (typeof err.error === 'string' && err.error.length > 0) return err.error;
+    return 'Could not update board. Please try again.';
   }
 
   onCardCreated(columnId: number, card: CardResponse): void {
