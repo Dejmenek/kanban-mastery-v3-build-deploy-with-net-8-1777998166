@@ -32,6 +32,7 @@ public static class BoardEndpoints
 
         boards.MapColumnEndpoints();
         boards.MapCardEndpoints();
+        boards.MapMemberEndpoints();
     }
 
     private static async Task<IResult> GetById(
