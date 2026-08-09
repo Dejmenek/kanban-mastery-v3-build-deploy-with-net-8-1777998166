@@ -79,7 +79,7 @@ public static class BoardEndpoints
         return TypedResults.Ok(result.Value);
     }
 
-    private static async Task<Results<Created<BoardResponse>, UnauthorizedHttpResult>> CreateBoard(
+    private static async Task<Results<Created<BoardSummaryResponse>, UnauthorizedHttpResult>> CreateBoard(
         CreateBoardRequest request, IBoardService boardService, ClaimsPrincipal user, CancellationToken cancellationToken)
     {
         var userId = user.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -90,7 +90,7 @@ public static class BoardEndpoints
 
         var result = await boardService.CreateAsync(request, userId, cancellationToken);
 
-        return TypedResults.Created<BoardResponse>($"/api/boards/{result.Value.Id}", result.Value);
+        return TypedResults.Created<BoardSummaryResponse>($"/api/boards/{result.Value.Id}", result.Value);
     }
 
     private static async Task<IResult> AddMember(

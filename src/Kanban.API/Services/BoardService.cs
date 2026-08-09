@@ -67,7 +67,7 @@ public class BoardService(ApplicationDbContext context) : IBoardService
         return board;
     }
 
-    public async Task<Result<BoardResponse>> CreateAsync(
+    public async Task<Result<BoardSummaryResponse>> CreateAsync(
         CreateBoardRequest request, string userId, CancellationToken cancellationToken = default)
     {
         var board = new Board { Name = request.Name, Description = request.Description };
@@ -77,15 +77,7 @@ public class BoardService(ApplicationDbContext context) : IBoardService
         context.BoardsMemberships.Add(membership);
         await context.SaveChangesAsync(cancellationToken);
 
-        var owner = await context.Users
-            .Where(u => u.Id == userId)
-            .Select(u => new { u.UserName, u.Email })
-            .FirstOrDefaultAsync(cancellationToken);
-
-        return new BoardResponse(board.Id, board.Name, board.Description,
-        [
-            new BoardMemberResponse(userId, owner?.UserName, owner?.Email, Role.Owner.ToString())
-        ]);
+        return new BoardSummaryResponse(board.Id, board.Name, Role.Owner.ToString());
     }
 
     public async Task<Result<BoardMemberResponse>> AddMemberAsync(int boardId, AddBoardMemberRequest request, CancellationToken cancellationToken = default)
