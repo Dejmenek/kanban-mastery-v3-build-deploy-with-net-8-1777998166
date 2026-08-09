@@ -132,8 +132,6 @@ public class BoardService(ApplicationDbContext context) : IBoardService
         }
 
         var board = await context.Boards
-            .Include(b => b.Members)
-                .ThenInclude(m => m.Member)
             .FirstOrDefaultAsync(b => b.Id == boardId, cancellationToken);
 
         if (board is null)
@@ -145,11 +143,7 @@ public class BoardService(ApplicationDbContext context) : IBoardService
         board.Description = request.Description;
         await context.SaveChangesAsync(cancellationToken);
 
-        var members = board.Members
-            .Select(m => new BoardMemberResponse(m.MemberId, m.Member.UserName, m.Member.Email, m.Role.ToString()))
-            .ToList();
-
-        return new BoardResponse(board.Id, board.Name, board.Description, members);
+        return new BoardResponse(board.Id, board.Name, board.Description);
     }
 
     public async Task<Result> DeleteAsync(int boardId, CancellationToken cancellationToken = default)
