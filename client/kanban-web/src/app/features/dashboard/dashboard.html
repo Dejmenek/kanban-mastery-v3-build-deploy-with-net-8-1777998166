@@ -1,7 +1,36 @@
 <div class="dashboard-page">
   <header class="dashboard-header">
     <h1 class="dashboard-title">Boards</h1>
+    @if (!isCreating()) {
+    <button type="button" class="btn-primary btn-sm" (click)="isCreating.set(true)">New board</button>
+    }
   </header>
+
+  @if (isCreating()) {
+  <form class="form dashboard-create-form" [formGroup]="createBoardForm" (ngSubmit)="onSubmit()" novalidate>
+    <div class="form-field">
+      <input type="text"
+             formControlName="name"
+             placeholder="Board name"
+             [class.has-error]="createBoardForm.controls.name.invalid && createBoardForm.controls.name.touched" />
+      @if (createBoardForm.controls.name.touched && createBoardForm.controls.name.hasError('required')) {
+      <span class="field-error">Name is required.</span>
+      }
+    </div>
+    <div class="form-field">
+      <textarea formControlName="description" placeholder="Description (optional)"></textarea>
+    </div>
+    @if (errorMessage(); as error) {
+    <div class="form-error" role="alert">{{ error }}</div>
+    }
+    <div class="form-actions">
+      <button type="button" class="btn-secondary btn-sm" [disabled]="isSubmitting()" (click)="onCancel()">Cancel</button>
+      <button type="submit" class="btn-primary btn-sm" [disabled]="!createBoardForm.valid || isSubmitting()">
+        {{ isSubmitting() ? 'Creating...' : 'Create' }}
+      </button>
+    </div>
+  </form>
+  }
 
   @if (boardsResource.isLoading()) {
     <div class="board-grid" aria-busy="true" aria-label="Loading boards">
@@ -13,9 +42,9 @@
     <div class="dashboard-state dashboard-state-error" role="alert">
       <p class="dashboard-state-text">Couldn't load your boards. Please try again.</p>
     </div>
-  } @else if (boardsResource.value()?.length) {
+  } @else if (boards().length) {
     <div class="board-grid">
-      @for (board of boardsResource.value(); track board.id) {
+      @for (board of boards(); track board.id) {
         <article class="board-card">
           <h2 class="board-card-title">{{ board.name }}</h2>
           <span class="board-card-role">{{ board.userRole }}</span>
