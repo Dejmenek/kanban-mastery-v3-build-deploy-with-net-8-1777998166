@@ -75,3 +75,8 @@ export interface CreateCardRequest {
   description: string | null;
   columnId: number;
 }
+
+export interface CreateBoardRequest {
+  name: string;
+  description: string | null;
+}
