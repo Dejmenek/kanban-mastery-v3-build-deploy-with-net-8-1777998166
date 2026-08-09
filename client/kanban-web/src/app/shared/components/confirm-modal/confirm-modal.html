@@ -1,0 +1,16 @@
+<div class="modal-header">
+  <h2 class="modal-title">Confirm Delete</h2>
+  <button type="button" class="modal-close" aria-label="Close" (click)="dialogRef.close(false)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <line x1="5" y1="5" x2="19" y2="19" />
+      <line x1="19" y1="5" x2="5" y2="19" />
+    </svg>
+  </button>
+</div>
+
+<p class="modal-message">Are you sure you want to delete this item? This action cannot be undone.</p>
+
+<div class="form-actions">
+  <button type="button" class="btn-secondary" (click)="confirm(false)">Cancel</button>
+  <button type="button" class="btn-danger" (click)="confirm(true)">Delete</button>
+</div>
