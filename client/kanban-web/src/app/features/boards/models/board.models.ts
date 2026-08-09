@@ -80,3 +80,14 @@ export interface CreateBoardRequest {
   name: string;
   description: string | null;
 }
+
+export interface UpdateBoardRequest {
+  name: string;
+  description: string | null;
+}
+
+export interface BoardResponse {
+  id: number;
+  name: string;
+  description: string | null;
+}

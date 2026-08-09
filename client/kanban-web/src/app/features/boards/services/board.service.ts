@@ -1,7 +1,7 @@
 import { inject, Service } from '@angular/core';
 import { ApiService } from '../../../core/http/services/api.service';
 import { Observable } from 'rxjs';
-import { AddBoardMemberRequest, BoardDetailsResponse, BoardMemberResponse, BoardSummaryResponse, CardResponse, CreateBoardRequest, CreateCardRequest, MoveCardRequest, MoveCardResponse } from '../models/board.models';
+import { AddBoardMemberRequest, BoardDetailsResponse, BoardMemberResponse, BoardResponse, BoardSummaryResponse, CardResponse, CreateBoardRequest, CreateCardRequest, MoveCardRequest, MoveCardResponse, UpdateBoardRequest } from '../models/board.models';
 
 @Service()
 export class BoardService {
@@ -35,5 +35,10 @@ export class BoardService {
   createBoard(request: CreateBoardRequest) {
     return this.api
       .post<CreateBoardRequest, BoardSummaryResponse>(`/api/boards`, request);
+  }
+
+  updateBoard(boardId: number, request: UpdateBoardRequest) {
+    return this.api
+      .put<UpdateBoardRequest, BoardResponse>(`/api/boards/${boardId}`, request);
   }
 }
