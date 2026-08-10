@@ -20,7 +20,9 @@ export class BoardCard {
   private boardService = inject(BoardService);
   card = input.required<CardResponse>();
   boardId = input.required<number>();
+  deletingCardId = input<number | null>(null);
   assigned = output<CardResponse>();
+  deleted = output<number>();
 
   readonly listbox = viewChild(Listbox);
   readonly combobox = viewChild(Combobox);
