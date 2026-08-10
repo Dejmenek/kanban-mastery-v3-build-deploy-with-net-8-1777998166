@@ -9,8 +9,8 @@ export class ApiService {
   private baseUrl = environment.apiUrl;
   private http = inject(HttpClient);
 
-  get<T>(path: string): Observable<T> {
-    return this.http.get<T>(`${this.baseUrl}${path}`);
+  get<T>(path: string, options?: Omit<HttpClientCommonOptions, 'observe' | 'responseType'>): Observable<T> {
+    return this.http.get<T>(`${this.baseUrl}${path}`, { ...options, observe: 'body', responseType: 'json' });
   }
 
   post<T, R = T>(path: string, body: T, options?: HttpClientCommonOptions): Observable<R> {
