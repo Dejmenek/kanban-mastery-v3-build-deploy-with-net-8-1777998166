@@ -64,6 +64,7 @@
         [boardId]="board().id"
         (dropped)="onCardDropped($event)"
         (cardCreated)="onCardCreated(column.id, $event)"
+        (cardAssigned)="onCardAssigned($event)"
       />
     } @empty {
       <p class="board-detail-empty">This board has no columns yet.</p>

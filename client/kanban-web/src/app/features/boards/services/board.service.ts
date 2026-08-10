@@ -1,7 +1,7 @@
 import { inject, Service } from '@angular/core';
 import { ApiService } from '../../../core/http/services/api.service';
 import { Observable } from 'rxjs';
-import { AddBoardMemberRequest, BoardDetailsResponse, BoardMemberResponse, BoardResponse, BoardSummaryResponse, CardResponse, CreateBoardRequest, CreateCardRequest, MoveCardRequest, MoveCardResponse, UpdateBoardRequest } from '../models/board.models';
+import { AddBoardMemberRequest, AssignCardRequest, BoardDetailsResponse, BoardMemberResponse, BoardResponse, BoardSummaryResponse, CardResponse, CreateBoardRequest, CreateCardRequest, MoveCardRequest, MoveCardResponse, UpdateBoardRequest } from '../models/board.models';
 
 @Service()
 export class BoardService {
@@ -22,28 +22,39 @@ export class BoardService {
       .put<MoveCardRequest, MoveCardResponse>(`/api/boards/${boardId}/cards/${cardId}/position`, request);
   }
 
-  addMember(boardId: number, request: AddBoardMemberRequest) {
+  addMember(boardId: number, request: AddBoardMemberRequest): Observable<BoardMemberResponse> {
     return this.api
       .post<AddBoardMemberRequest, BoardMemberResponse>(`/api/boards/${boardId}/members`, request);
   }
 
-  createCard(boardId: number, request: CreateCardRequest) {
+  createCard(boardId: number, request: CreateCardRequest): Observable<CardResponse> {
     return this.api
       .post<CreateCardRequest, CardResponse>(`/api/boards/${boardId}/cards`, request);
   }
 
-  createBoard(request: CreateBoardRequest) {
+  createBoard(request: CreateBoardRequest): Observable<BoardSummaryResponse> {
     return this.api
       .post<CreateBoardRequest, BoardSummaryResponse>(`/api/boards`, request);
   }
 
-  updateBoard(boardId: number, request: UpdateBoardRequest) {
+  updateBoard(boardId: number, request: UpdateBoardRequest): Observable<BoardResponse> {
     return this.api
       .put<UpdateBoardRequest, BoardResponse>(`/api/boards/${boardId}`, request);
   }
 
-  deleteBoard(boardId: number) {
+  deleteBoard(boardId: number): Observable<void> {
     return this.api
       .delete<void>(`/api/boards/${boardId}`);
+  }
+
+  searchMembers(boardId: number, query: string): Observable<BoardMemberResponse[]> {
+    return this.api
+      .get<BoardMemberResponse[]>(`/api/boards/${boardId}/members/search`, { params: { query } });
+
+  }
+
+  assignMember(boardId: number, cardId: number, request: AssignCardRequest): Observable<CardResponse> {
+    return this.api
+      .put<AssignCardRequest, CardResponse>(`/api/boards/${boardId}/cards/${cardId}/assign`, request);
   }
 }

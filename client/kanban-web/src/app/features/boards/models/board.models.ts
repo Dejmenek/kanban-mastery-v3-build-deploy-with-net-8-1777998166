@@ -91,3 +91,7 @@ export interface BoardResponse {
   name: string;
   description: string | null;
 }
+
+export interface AssignCardRequest {
+  userId: string;
+}
