@@ -236,4 +236,193 @@ public class MemberServiceTests(IntegrationTestWebAppFactory<Program> factory)
         Assert.Single(result.Value.Items);
         Assert.NotNull(result.Value.NextCursor);
     }
+
+    [Fact]
+    public async Task SearchAsync_WithMatchingUserName_ReturnsMatchingMembers()
+    {
+        // Arrange
+        var owner = await CreateUserAsync("owner@example.com", "Test123!", "alice-owner");
+        var board = await UseDbContextAsync(context => BoardTestHelper.SeedBoardAsync(context, owner.Id));
+
+        var member = await CreateUserAsync("bob@example.com", "Test123!", "alice-member");
+        await UseDbContextAsync(context => BoardTestHelper.SeedBoardMemberAsync(
+            context, new BoardMember { BoardId = board.Id, MemberId = member.Id, Role = Role.Member }));
+
+        var other = await CreateUserAsync("carol@example.com", "Test123!", "carol-member");
+        await UseDbContextAsync(context => BoardTestHelper.SeedBoardMemberAsync(
+            context, new BoardMember { BoardId = board.Id, MemberId = other.Id, Role = Role.Member }));
+
+        // Act
+        var result = await UseMemberServiceAsync(service =>
+            service.SearchAsync(board.Id, "alice", 10, TestContext.Current.CancellationToken));
+
+        // Assert
+        Assert.True(result.IsSuccess);
+        Assert.Equal(2, result.Value.Count);
+        Assert.Contains(result.Value, m => m.MemberId == owner.Id);
+        Assert.Contains(result.Value, m => m.MemberId == member.Id);
+        Assert.DoesNotContain(result.Value, m => m.MemberId == other.Id);
+    }
+
+    [Fact]
+    public async Task SearchAsync_WithMatchingEmail_ReturnsMatchingMembers()
+    {
+        // Arrange
+        var owner = await CreateUserAsync("owner@example.com", "Test123!");
+        var board = await UseDbContextAsync(context => BoardTestHelper.SeedBoardAsync(context, owner.Id));
+
+        var member = await CreateUserAsync("findme@example.com", "Test123!", "randomname");
+        await UseDbContextAsync(context => BoardTestHelper.SeedBoardMemberAsync(
+            context, new BoardMember { BoardId = board.Id, MemberId = member.Id, Role = Role.Member }));
+
+        // Act
+        var result = await UseMemberServiceAsync(service =>
+            service.SearchAsync(board.Id, "findme", 10, TestContext.Current.CancellationToken));
+
+        // Assert
+        Assert.True(result.IsSuccess);
+        var match = Assert.Single(result.Value);
+        Assert.Equal(member.Id, match.MemberId);
+    }
+
+    [Fact]
+    public async Task SearchAsync_WithNoMatches_ReturnsEmptyList()
+    {
+        // Arrange
+        var owner = await CreateUserAsync("owner@example.com", "Test123!");
+        var board = await UseDbContextAsync(context => BoardTestHelper.SeedBoardAsync(context, owner.Id));
+
+        // Act
+        var result = await UseMemberServiceAsync(service =>
+            service.SearchAsync(board.Id, "nonexistentquery", 10, TestContext.Current.CancellationToken));
+
+        // Assert
+        Assert.True(result.IsSuccess);
+        Assert.Empty(result.Value);
+    }
+
+    [Fact]
+    public async Task SearchAsync_WithNonExistentBoard_ReturnsNotFoundFailure()
+    {
+        // Arrange
+        const int nonExistentBoardId = 999;
+
+        // Act
+        var result = await UseMemberServiceAsync(service =>
+            service.SearchAsync(nonExistentBoardId, "query", 10, TestContext.Current.CancellationToken));
+
+        // Assert
+        Assert.True(result.IsFailure);
+        Assert.Equal(BoardErrors.NotFound(nonExistentBoardId), result.Error);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData(" ")]
+    [InlineData("a")]
+    public async Task SearchAsync_WithInvalidQuery_ReturnsValidationFailure(string? query)
+    {
+        // Arrange
+        var owner = await CreateUserAsync("owner@example.com", "Test123!");
+        var board = await UseDbContextAsync(context => BoardTestHelper.SeedBoardAsync(context, owner.Id));
+
+        // Act
+        var result = await UseMemberServiceAsync(service =>
+            service.SearchAsync(board.Id, query, 10, TestContext.Current.CancellationToken));
+
+        // Assert
+        Assert.True(result.IsFailure);
+        Assert.Equal(MemberErrors.InvalidSearchQuery, result.Error);
+    }
+
+    [Fact]
+    public async Task SearchAsync_RespectsLimit()
+    {
+        // Arrange
+        var owner = await CreateUserAsync("owner@example.com", "Test123!", "search-user-owner");
+        var board = await UseDbContextAsync(context => BoardTestHelper.SeedBoardAsync(context, owner.Id));
+
+        for (var i = 0; i < 5; i++)
+        {
+            var member = await CreateUserAsync($"search-user-{i}@example.com", "Test123!", $"search-user-{i}");
+            await UseDbContextAsync(context => BoardTestHelper.SeedBoardMemberAsync(
+                context, new BoardMember { BoardId = board.Id, MemberId = member.Id, Role = Role.Member }));
+        }
+
+        // Act
+        var result = await UseMemberServiceAsync(service =>
+            service.SearchAsync(board.Id, "search-user", 3, TestContext.Current.CancellationToken));
+
+        // Assert
+        Assert.True(result.IsSuccess);
+        Assert.Equal(3, result.Value.Count);
+    }
+
+    [Fact]
+    public async Task SearchAsync_WithLimitAboveMax_ClampsToMax()
+    {
+        // Arrange
+        var owner = await CreateUserAsync("owner@example.com", "Test123!", "clamp-owner");
+        var board = await UseDbContextAsync(context => BoardTestHelper.SeedBoardAsync(context, owner.Id));
+
+        for (var i = 0; i < 12; i++)
+        {
+            var member = await CreateUserAsync($"clamp-{i}@example.com", "Test123!", $"clamp-{i}");
+            await UseDbContextAsync(context => BoardTestHelper.SeedBoardMemberAsync(
+                context, new BoardMember { BoardId = board.Id, MemberId = member.Id, Role = Role.Member }));
+        }
+
+        // Act
+        var result = await UseMemberServiceAsync(service =>
+            service.SearchAsync(board.Id, "clamp", 1000, TestContext.Current.CancellationToken));
+
+        // Assert
+        Assert.True(result.IsSuccess);
+        Assert.Equal(10, result.Value.Count);
+    }
+
+    [Fact]
+    public async Task SearchAsync_IsCaseInsensitive()
+    {
+        // Arrange
+        var owner = await CreateUserAsync("owner@example.com", "Test123!");
+        var board = await UseDbContextAsync(context => BoardTestHelper.SeedBoardAsync(context, owner.Id));
+
+        var member = await CreateUserAsync("member@example.com", "Test123!", "CaseSensitiveName");
+        await UseDbContextAsync(context => BoardTestHelper.SeedBoardMemberAsync(
+            context, new BoardMember { BoardId = board.Id, MemberId = member.Id, Role = Role.Member }));
+
+        // Act
+        var result = await UseMemberServiceAsync(service =>
+            service.SearchAsync(board.Id, "casesensitive", 10, TestContext.Current.CancellationToken));
+
+        // Assert
+        Assert.True(result.IsSuccess);
+        Assert.Contains(result.Value, m => m.MemberId == member.Id);
+    }
+
+    [Fact]
+    public async Task SearchAsync_OnlyReturnsMembersOfGivenBoard()
+    {
+        // Arrange
+        var owner1 = await CreateUserAsync("owner1@example.com", "Test123!");
+        var board1 = await UseDbContextAsync(context => BoardTestHelper.SeedBoardAsync(context, owner1.Id));
+
+        var owner2 = await CreateUserAsync("owner2@example.com", "Test123!", "shared-name-owner2");
+        await UseDbContextAsync(context => BoardTestHelper.SeedBoardAsync(context, owner2.Id));
+
+        var memberOnBoard1 = await CreateUserAsync("member1@example.com", "Test123!", "shared-name-member1");
+        await UseDbContextAsync(context => BoardTestHelper.SeedBoardMemberAsync(
+            context, new BoardMember { BoardId = board1.Id, MemberId = memberOnBoard1.Id, Role = Role.Member }));
+
+        // Act
+        var result = await UseMemberServiceAsync(service =>
+            service.SearchAsync(board1.Id, "shared-name", 10, TestContext.Current.CancellationToken));
+
+        // Assert
+        Assert.True(result.IsSuccess);
+        var match = Assert.Single(result.Value);
+        Assert.Equal(memberOnBoard1.Id, match.MemberId);
+    }
 }

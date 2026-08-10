@@ -245,4 +245,90 @@ public class MemberEndpointsTests(IntegrationTestWebAppFactory<Program> factory)
         Assert.Equal(5, collectedIds.Count);
         Assert.Equal(collectedIds.Distinct().Count(), collectedIds.Count);
     }
+
+    [Fact]
+    public async Task SearchMembers_AsMember_ReturnsOkWithMatches()
+    {
+        // Arrange
+        var owner = await CreateUserAndAuthenticateAsync("owner@example.com", "Test123!");
+        var board = await UseDbContextAsync(context => BoardTestHelper.SeedBoardAsync(context, owner.Id));
+
+        var member = await CreateUserAsync("member@example.com", "Test123!", "member-search");
+        await UseDbContextAsync(context => BoardTestHelper.SeedBoardMemberAsync(
+            context, new BoardMember { BoardId = board.Id, MemberId = member.Id, Role = Role.Member }));
+
+        // Act
+        var response = await Client.GetAsync($"/api/boards/{board.Id}/members/search?query=example.com", TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var body = await response.Content.ReadFromJsonAsync<List<BoardMemberResponse>>(TestContext.Current.CancellationToken);
+        Assert.NotNull(body);
+        Assert.Equal(2, body.Count);
+        Assert.Contains(body, m => m.MemberId == owner.Id);
+        Assert.Contains(body, m => m.MemberId == member.Id);
+    }
+
+    [Fact]
+    public async Task SearchMembers_Unauthenticated_ReturnsUnauthorized()
+    {
+        // Arrange
+        var owner = await CreateUserAndAuthenticateAsync("owner@example.com", "Test123!");
+        var board = await UseDbContextAsync(context => BoardTestHelper.SeedBoardAsync(context, owner.Id));
+        Client.DefaultRequestHeaders.Authorization = null;
+
+        // Act
+        var response = await Client.GetAsync($"/api/boards/{board.Id}/members/search?query=owner", TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task SearchMembers_AsNonMember_ReturnsForbidden()
+    {
+        // Arrange
+        var owner = await CreateUserAndAuthenticateAsync("owner@example.com", "Test123!");
+        var board = await UseDbContextAsync(context => BoardTestHelper.SeedBoardAsync(context, owner.Id));
+
+        var nonMemberEmail = "nonmember@example.com";
+        var nonMemberPassword = "Test123!";
+        await CreateUserAsync(nonMemberEmail, nonMemberPassword);
+
+        await AuthenticateAsAsync(nonMemberEmail, nonMemberPassword);
+
+        // Act
+        var response = await Client.GetAsync($"/api/boards/{board.Id}/members/search?query=owner", TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task SearchMembers_WithNonExistentBoard_ReturnsForbidden()
+    {
+        // Arrange
+        await CreateUserAndAuthenticateAsync("owner@example.com", "Test123!");
+
+        // Act
+        var response = await Client.GetAsync("/api/boards/999999/members/search?query=owner", TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task SearchMembers_WithoutQuery_ReturnsBadRequest()
+    {
+        // Arrange
+        var owner = await CreateUserAndAuthenticateAsync("owner@example.com", "Test123!");
+        var board = await UseDbContextAsync(context => BoardTestHelper.SeedBoardAsync(context, owner.Id));
+
+        // Act
+        var response = await Client.GetAsync($"/api/boards/{board.Id}/members/search", TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
 }
