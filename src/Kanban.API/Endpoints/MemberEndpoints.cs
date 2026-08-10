@@ -26,6 +26,12 @@ public static class MemberEndpoints
             .Produces(StatusCodes.Status403Forbidden)
             .Produces<string>(StatusCodes.Status400BadRequest)
             .Produces<string>(StatusCodes.Status404NotFound);
+        members.MapGet("/search", SearchMembers)
+            .Produces<IReadOnlyList<BoardMemberResponse>>(StatusCodes.Status200OK)
+            .Produces(StatusCodes.Status401Unauthorized)
+            .Produces(StatusCodes.Status403Forbidden)
+            .Produces<string>(StatusCodes.Status400BadRequest)
+            .Produces<string>(StatusCodes.Status404NotFound);
     }
 
     private static async Task<IResult> AddMember(
@@ -75,6 +81,34 @@ public static class MemberEndpoints
         }
 
         var result = await memberService.GetAllAsync(boardId, cursor, pageSize, cancellationToken);
+        if (result.IsFailure)
+        {
+            return result.Error.ToTypedResult();
+        }
+
+        return TypedResults.Ok(result.Value);
+    }
+
+    private static async Task<IResult> SearchMembers(
+        int boardId,
+        string? query,
+        IAuthorizationService authService,
+        IMemberService memberService, ClaimsPrincipal user, CancellationToken cancellationToken,
+        int limit = 10)
+    {
+        var userId = user.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (userId is null)
+        {
+            return TypedResults.Unauthorized();
+        }
+
+        var authResult = await authService.AuthorizeAsync(user, boardId, "IsBoardMember");
+        if (!authResult.Succeeded)
+        {
+            return TypedResults.Forbid();
+        }
+
+        var result = await memberService.SearchAsync(boardId, query, limit, cancellationToken);
         if (result.IsFailure)
         {
             return result.Error.ToTypedResult();

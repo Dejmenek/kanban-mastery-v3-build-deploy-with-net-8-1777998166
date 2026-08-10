@@ -10,6 +10,8 @@ namespace Kanban.API.Services;
 public class MemberService(ApplicationDbContext context) : IMemberService
 {
     private const int MaxPageSize = 100;
+    private const int MinQueryLength = 2;
+    private const int MaxSearchResults = 10;
 
     public async Task<Result<BoardMemberResponse>> AddMemberAsync(int boardId, AddBoardMemberRequest request, CancellationToken cancellationToken = default)
     {
@@ -100,5 +102,38 @@ public class MemberService(ApplicationDbContext context) : IMemberService
         var nextCursor = hasMore ? CursorEncoder.Encode(members[^1].MemberId) : null;
 
         return new CursorPagedResponse<BoardMemberResponse>(members, nextCursor);
+    }
+
+    public async Task<Result<IReadOnlyList<BoardMemberResponse>>> SearchAsync(
+        int boardId, string? query, int limit, CancellationToken cancellationToken = default)
+    {
+        var trimmedQuery = query?.Trim();
+        if (string.IsNullOrEmpty(trimmedQuery) || trimmedQuery.Length < MinQueryLength)
+        {
+            return Result.Failure<IReadOnlyList<BoardMemberResponse>>(MemberErrors.InvalidSearchQuery);
+        }
+
+        var boardExists = await context.Boards
+            .AsNoTracking()
+            .AnyAsync(b => b.Id == boardId, cancellationToken);
+        if (!boardExists)
+        {
+            return Result.Failure<IReadOnlyList<BoardMemberResponse>>(BoardErrors.NotFound(boardId));
+        }
+
+        var effectiveLimit = Math.Clamp(limit, 1, MaxSearchResults);
+        var likePattern = $"%{trimmedQuery}%";
+
+        var matches = await context.BoardsMemberships
+            .AsNoTracking()
+            .Where(m => m.BoardId == boardId)
+            .Where(m => (m.Member.UserName != null && EF.Functions.Like(m.Member.UserName, likePattern)) ||
+                        (m.Member.Email != null && EF.Functions.Like(m.Member.Email, likePattern)))
+            .OrderBy(m => m.MemberId)
+            .Take(effectiveLimit)
+            .Select(m => new BoardMemberResponse(m.MemberId, m.Member.UserName, m.Member.Email, m.Role.ToString()))
+            .ToListAsync(cancellationToken);
+
+        return Result.Success<IReadOnlyList<BoardMemberResponse>>(matches);
     }
 }
