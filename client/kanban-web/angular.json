@@ -34,7 +34,7 @@
                 "input": "public"
               }
             ],
-            "styles": ["@angular/cdk/overlay-prebuilt.css", "src/styles.css"]
+            "styles": ["@angular/cdk/overlay-prebuilt.css", "@angular/cdk/a11y-prebuilt.css", "src/styles.css"]
           },
           "configurations": {
             "production": {
