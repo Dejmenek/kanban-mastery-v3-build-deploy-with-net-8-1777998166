@@ -103,6 +103,15 @@ export class BoardDetail {
     );
   }
 
+  onCardAssigned(updatedCard: CardResponse): void {
+    this.columns.update((cols) =>
+      cols.map((column) => ({
+        ...column,
+        cards: column.cards.map((card) => (card.id === updatedCard.id ? updatedCard : card)),
+      })),
+    );
+  }
+
   onCardDropped(event: CdkDragDrop<CardResponse[]>): void {
     const card = event.item.data as CardResponse;
     const expectedColumnId = this.findColumnIdForCards(event.previousContainer.data);

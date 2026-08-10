@@ -18,6 +18,7 @@ export class BoardColumn {
   boardId = input.required<number>();
   dropped = output<CdkDragDrop<CardResponse[]>>();
   cardCreated = output<CardResponse>();
+  cardAssigned = output<CardResponse>();
   protected boardService = inject(BoardService);
 
   protected addCardForm = new FormGroup({

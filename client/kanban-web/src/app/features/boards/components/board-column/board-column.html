@@ -8,7 +8,7 @@
   }
   <div class="board-column-cards" cdkDropList [cdkDropListData]="column().cards" (cdkDropListDropped)="dropped.emit($event)">
     @for (card of column().cards; track card.id) {
-      <app-board-card [card]="card" />
+      <app-board-card [card]="card" [boardId]="boardId()" (assigned)="cardAssigned.emit($event)" />
     } @empty {
       <p class="board-column-empty">No cards yet.</p>
     }

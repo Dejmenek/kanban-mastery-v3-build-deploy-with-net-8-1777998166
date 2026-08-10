@@ -1,12 +1,86 @@
-<article class="board-card" cdkDrag [cdkDragData]="card()">
+<article class="board-card" cdkDrag [cdkDragData]="card()" [cdkDragDisabled]="popupExpanded()">
   <h3 class="board-card-title">{{ card().title }}</h3>
   @if (card().description) {
     <p class="board-card-description">{{ card().description }}</p>
   }
+
   @if (card().assignedTo; as assignee) {
     <div class="board-card-assignee">
       <app-avatar [name]="assignee.userName" [email]="assignee.email" />
       <span class="board-card-assignee-name">{{ assignee.userName ?? assignee.email ?? 'Unknown' }}</span>
+    </div>
+  } @else if (!popupExpanded()) {
+    <button type="button" class="assignee-placeholder" (click)="popupExpanded.set(true)" aria-label="Assign a member">
+      <span class="avatar avatar-placeholder">+</span>
+    </button>
+  } @else {
+    <div #origin class="board-card-assign">
+      <input
+        #combobox="ngCombobox"
+        ngCombobox
+        class="autocomplete-input"
+        placeholder="Search members…"
+        [(value)]="query"
+        [(expanded)]="popupExpanded"
+        [disabled]="isAssigning()"
+        (focusout)="onBlur()"
+      />
+      <button
+        type="button"
+        class="clear-button"
+        aria-label="Cancel"
+        [disabled]="isAssigning()"
+        (mousedown)="$event.preventDefault()"
+        (click)="clear()"
+      >
+        <span class="clear-icon" aria-hidden="true">&times;</span>
+      </button>
+
+      @if (errorMessage(); as error) {
+        <div class="form-error" role="alert">{{ error }}</div>
+      }
+
+      <div aria-live="polite" class="cdk-visually-hidden">
+        @if (query().trim().length >= 2 && !debouncedQuery.isLoading() && !memberResource.isLoading()) {
+          {{ (memberResource.value() ?? []).length === 0 ? 'No members found for ' + query() : '' }}
+        }
+      </div>
+
+      <ng-template [cdkConnectedOverlay]="{ origin, usePopover: 'inline', matchWidth: true }" [cdkConnectedOverlayOpen]="popupExpanded()">
+        <ng-template ngComboboxPopup [combobox]="combobox">
+          <div class="popup">
+            @if (query().trim().length < 2) {
+              <div class="no-results">Type at least 2 characters…</div>
+            } @else if (debouncedQuery.isLoading() || memberResource.isLoading()) {
+              <div class="no-results">Searching…</div>
+            } @else if ((memberResource.value() ?? []).length === 0) {
+              <div class="no-results">No members found</div>
+            }
+            <div
+              #listbox="ngListbox"
+              ngListbox
+              ngComboboxWidget
+              class="listbox"
+              focusMode="activedescendant"
+              selectionMode="explicit"
+              [multi]="false"
+              [tabindex]="-1"
+              [activeDescendant]="listbox.activeDescendant()"
+              [(value)]="selectedOption"
+              (mousedown)="$event.preventDefault()"
+              (click)="onCommit()"
+              (keydown.enter)="onCommit()"
+            >
+              @for (member of memberResource.value() ?? []; track member.memberId) {
+                <div class="option" ngOption [value]="member" [label]="member.userName ?? member.email ?? ''">
+                  <app-avatar [name]="member.userName" [email]="member.email" />
+                  <span class="option-label">{{ member.userName ?? member.email ?? 'Unknown' }}</span>
+                </div>
+              }
+            </div>
+          </div>
+        </ng-template>
+      </ng-template>
     </div>
   }
 </article>
