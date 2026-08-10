@@ -13,6 +13,7 @@ import { BoardService } from '../../services/board.service';
 import { CdkDragDrop, CdkDropListGroup, moveItemInArray, transferArrayItem } from '@angular/cdk/drag-drop';
 import { Dialog, DialogModule } from '@angular/cdk/dialog';
 import { InviteModal } from '../../components/invite-modal/invite-modal';
+import { ConfirmModal } from '../../../../shared/components/confirm-modal/confirm-modal';
 import { Avatar } from '../../../../shared/components/avatar/avatar';
 import { FormGroup, FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
@@ -37,6 +38,9 @@ export class BoardDetail {
   protected boardDescription = linkedSignal(() => this.board().description);
   protected moveError = signal<string | null>(null);
   protected isOwner = computed(() => this.board().userRole === 'Owner');
+
+  protected deletingCardId = signal<number | null>(null);
+  protected deleteCardError = signal<string | null>(null);
 
   protected isEditingBoard = signal(false);
   protected editErrorMessage = signal<string | null>(null);
@@ -110,6 +114,41 @@ export class BoardDetail {
         cards: column.cards.map((card) => (card.id === updatedCard.id ? updatedCard : card)),
       })),
     );
+  }
+
+  onDeleteCardRequested(cardId: number): void {
+    this.deletingCardId.set(cardId);
+
+    const dialogRef = this.dialog.open<boolean>(ConfirmModal);
+    dialogRef.closed.subscribe((isConfirmed) => {
+      if (isConfirmed) {
+        this.deleteCard(cardId);
+      } else {
+        this.deletingCardId.set(null);
+      }
+    });
+  }
+
+  private deleteCard(cardId: number): void {
+    this.deleteCardError.set(null);
+
+    this.boardService
+      .deleteCard(this.board().id, cardId)
+      .pipe(finalize(() => this.deletingCardId.set(null)))
+      .subscribe({
+        next: () => {
+          this.columns.update((cols) =>
+            cols.map((column) => ({ ...column, cards: column.cards.filter((card) => card.id !== cardId) })),
+          );
+        },
+        error: (err: HttpErrorResponse) =>
+          this.deleteCardError.set(this.extractDeleteCardErrorMessage(err)),
+      });
+  }
+
+  private extractDeleteCardErrorMessage(err: HttpErrorResponse): string {
+    if (typeof err.error === 'string' && err.error.length > 0) return err.error;
+    return 'Could not delete card. Please try again.';
   }
 
   onCardDropped(event: CdkDragDrop<CardResponse[]>): void {

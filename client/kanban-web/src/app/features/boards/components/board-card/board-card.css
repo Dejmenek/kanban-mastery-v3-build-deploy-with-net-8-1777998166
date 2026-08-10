@@ -1,4 +1,5 @@
 .board-card {
+  position: relative;
   padding: var(--space-4);
   background-color: var(--color-surface);
   border: var(--border-width-sm) solid var(--color-border);
@@ -8,7 +9,42 @@
   gap: var(--space-2);
 }
 
+.card-delete-button {
+  position: absolute;
+  top: var(--space-2);
+  right: var(--space-2);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--color-text-dim);
+  cursor: pointer;
+  font-size: var(--text-base);
+  line-height: 1;
+  opacity: 0.7;
+}
+
+.card-delete-button:hover:not(:disabled) {
+  opacity: 1;
+  color: var(--color-error);
+}
+
+.card-delete-button:disabled {
+  color: var(--color-text-dim);
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.card-delete-icon {
+  pointer-events: none;
+}
+
 .board-card-title {
+  padding-right: var(--space-4);
   font-family: var(--font-mono);
   font-size: var(--text-sm);
   font-weight: var(--font-weight-semibold);

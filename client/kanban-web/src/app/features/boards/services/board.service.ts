@@ -47,6 +47,11 @@ export class BoardService {
       .delete<void>(`/api/boards/${boardId}`);
   }
 
+  deleteCard(boardId: number, cardId: number): Observable<void> {
+    return this.api
+      .delete<void>(`/api/boards/${boardId}/cards/${cardId}`);
+  }
+
   searchMembers(boardId: number, query: string): Observable<BoardMemberResponse[]> {
     return this.api
       .get<BoardMemberResponse[]>(`/api/boards/${boardId}/members/search`, { params: { query } });

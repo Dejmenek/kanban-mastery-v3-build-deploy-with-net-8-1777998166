@@ -16,9 +16,11 @@ import { BoardService } from '../../services/board.service';
 export class BoardColumn {
   column = input.required<ColumnResponse>();
   boardId = input.required<number>();
+  deletingCardId = input<number | null>(null);
   dropped = output<CdkDragDrop<CardResponse[]>>();
   cardCreated = output<CardResponse>();
   cardAssigned = output<CardResponse>();
+  cardDeleted = output<number>();
   protected boardService = inject(BoardService);
 
   protected addCardForm = new FormGroup({
