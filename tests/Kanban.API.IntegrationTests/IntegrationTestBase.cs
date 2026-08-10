@@ -81,4 +81,11 @@ public abstract class IntegrationTestBase(IntegrationTestWebAppFactory<Program> 
         var service = scope.ServiceProvider.GetRequiredService<ICardService>();
         return await action(service);
     }
+
+    protected async Task<TResult> UseMemberServiceAsync<TResult>(Func<IMemberService, Task<TResult>> action)
+    {
+        using var scope = Factory.Services.CreateScope();
+        var service = scope.ServiceProvider.GetRequiredService<IMemberService>();
+        return await action(service);
+    }
 }
