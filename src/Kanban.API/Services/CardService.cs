@@ -248,5 +248,5 @@ public class CardService(ApplicationDbContext context, IRetryExecutor retryExecu
 
     private static bool IsRetryableConflict(DbUpdateException ex) =>
         ex.InnerException is SqliteException sqliteEx &&
-        ((sqliteEx.SqliteErrorCode == 19 && sqliteEx.Message.Contains("IX_Cards_ColumnId_Position")) || sqliteEx.SqliteErrorCode is 5 or 6);
+        ((sqliteEx.SqliteErrorCode == 19 && sqliteEx.Message.Contains("Cards.ColumnId, Cards.Position")) || sqliteEx.SqliteErrorCode is 5 or 6);
 }
