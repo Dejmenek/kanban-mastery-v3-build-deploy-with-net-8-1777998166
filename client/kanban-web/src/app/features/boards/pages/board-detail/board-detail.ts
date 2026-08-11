@@ -18,12 +18,14 @@ import { Avatar } from '../../../../shared/components/avatar/avatar';
 import { FormGroup, FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { finalize } from 'rxjs';
+import { extractErrorMessage } from '../../../../shared/utils/extract-error-message';
+import { ErrorMessage } from '../../../../shared/components/error-message/error-message';
 
 @Component({
   selector: 'app-board-detail',
   templateUrl: './board-detail.html',
   styleUrl: './board-detail.css',
-  imports: [BoardColumn, CdkDropListGroup, DialogModule, Avatar, ReactiveFormsModule],
+  imports: [BoardColumn, CdkDropListGroup, DialogModule, Avatar, ReactiveFormsModule, ErrorMessage],
 })
 export class BoardDetail {
   board = input.required<BoardDetailsResponse>();
@@ -82,7 +84,7 @@ export class BoardDetail {
       .pipe(finalize(() => this.isSubmittingEdit.set(false)))
       .subscribe({
         next: (updated) => {
-          this.boardName.set(updated.name);
+        error: (err: HttpErrorResponse) => this.editErrorMessage.set(extractErrorMessage(err, 'Could not update board. Please try again.')),
           this.boardDescription.set(updated.description);
           this.isEditingBoard.set(false);
         },
@@ -96,10 +98,6 @@ export class BoardDetail {
     this.isEditingBoard.set(false);
   }
 
-  private extractErrorMessage(err: HttpErrorResponse): string {
-    if (typeof err.error === 'string' && err.error.length > 0) return err.error;
-    return 'Could not update board. Please try again.';
-  }
 
   onCardCreated(columnId: number, card: CardResponse): void {
     this.columns.update((cols) =>
@@ -146,10 +144,6 @@ export class BoardDetail {
       });
   }
 
-  private extractDeleteCardErrorMessage(err: HttpErrorResponse): string {
-    if (typeof err.error === 'string' && err.error.length > 0) return err.error;
-    return 'Could not delete card. Please try again.';
-  }
 
   onCardDropped(event: CdkDragDrop<CardResponse[]>): void {
     const card = event.item.data as CardResponse;

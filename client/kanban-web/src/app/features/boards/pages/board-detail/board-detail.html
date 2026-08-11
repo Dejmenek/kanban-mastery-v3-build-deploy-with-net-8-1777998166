@@ -26,9 +26,7 @@
         <div class="form-field">
           <textarea formControlName="description" placeholder="Description (optional)"></textarea>
         </div>
-        @if (editErrorMessage(); as error) {
-        <div class="form-error" role="alert">{{ error }}</div>
-        }
+        <app-error-message [message]="editErrorMessage()" />
         <div class="form-actions">
           <button type="button" class="btn-secondary btn-sm" [disabled]="isSubmittingEdit()" (click)="onEditBoardCancel()">Cancel</button>
           <button type="submit" class="btn-primary btn-sm" [disabled]="!editBoardForm.valid || isSubmittingEdit()">
@@ -53,13 +51,8 @@
     </div>
   </header>
 
-  @if (moveError(); as error) {
-    <p class="board-detail-error">{{ error }}</p>
-  }
-
-  @if (deleteCardError(); as error) {
-    <p class="board-detail-error">{{ error }}</p>
-  }
+  <app-error-message [message]="boardService.moveError()" />
+  <app-error-message [message]="boardService.deleteCardError()" />
 
   <div class="board-columns" cdkDropListGroup>
     @for (column of columns(); track column.id) {

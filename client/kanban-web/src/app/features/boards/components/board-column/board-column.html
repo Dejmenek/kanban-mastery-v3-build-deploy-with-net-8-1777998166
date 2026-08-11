@@ -39,9 +39,7 @@
         <textarea formControlName="description" placeholder="Description (optional)"></textarea>
       </div>
 
-      @if (errorMessage(); as error) {
-        <div class="form-error" role="alert">{{ error }}</div>
-      }
+      <app-error-message [message]="errorMessage()" />
 
       <div class="form-actions">
         <button type="button" class="btn-secondary btn-sm" [disabled]="isSubmitting()" (click)="onCancel()">Cancel</button>

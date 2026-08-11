@@ -39,9 +39,7 @@
       <span class="clear-icon" aria-hidden="true">&times;</span>
     </button>
 
-    @if (errorMessage(); as error) {
-    <div class="form-error" role="alert">{{ error }}</div>
-    }
+    <app-error-message [message]="errorMessage()" />
 
     <div aria-live="polite" class="cdk-visually-hidden">
       @if (query().trim().length >= 2 && !debouncedQuery.isLoading() && !memberResource.isLoading()) {

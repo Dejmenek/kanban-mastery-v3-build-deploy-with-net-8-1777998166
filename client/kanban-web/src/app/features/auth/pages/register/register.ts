@@ -6,12 +6,13 @@ import { finalize } from 'rxjs';
 import { AuthService } from '../../../../core/auth/services/auth.service';
 import { RegisterRequest } from '../../../../core/auth/models/auth.models';
 import { extractIdentityErrorMessage } from '../../utils/identity-error';
+import { ErrorMessage } from '../../../../shared/components/error-message/error-message';
 
 @Component({
   selector: 'app-register',
   templateUrl: './register.html',
   styleUrls: ['../../auth-form.css', './register.css'],
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, ErrorMessage],
 })
 export class Register {
   private auth = inject(AuthService);

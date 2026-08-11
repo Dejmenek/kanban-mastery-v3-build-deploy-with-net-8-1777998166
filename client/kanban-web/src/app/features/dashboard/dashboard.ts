@@ -8,12 +8,14 @@ import { finalize } from 'rxjs';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Dialog } from '@angular/cdk/dialog';
 import { ConfirmModal } from '../../shared/components/confirm-modal/confirm-modal';
+import { extractErrorMessage } from '../../shared/utils/extract-error-message';
+import { ErrorMessage } from '../../shared/components/error-message/error-message';
 
 @Component({
   selector: 'app-dashboard',
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.css',
-  imports: [RouterLink, ReactiveFormsModule],
+  imports: [RouterLink, ReactiveFormsModule, ErrorMessage],
 })
 export class Dashboard {
   dialog = inject(Dialog);
@@ -59,7 +61,7 @@ export class Dashboard {
           this.isCreating.set(false);
         },
         error: (err: HttpErrorResponse) =>
-          this.errorMessage.set(this.extractErrorMessage(err, 'Could not create board. Please try again.')),
+          this.errorMessage.set(extractErrorMessage(err, 'Could not create board. Please try again.')),
       });
   }
 
@@ -91,12 +93,7 @@ export class Dashboard {
       .subscribe({
         next: () => this.boards.update((boards) => boards.filter((board) => board.id !== boardId)),
         error: (err: HttpErrorResponse) =>
-          this.deleteErrorMessage.set(this.extractErrorMessage(err, 'Could not delete board. Please try again.')),
+          this.deleteErrorMessage.set(extractErrorMessage(err, 'Could not delete board. Please try again.')),
       });
-  }
-
-  private extractErrorMessage(err: HttpErrorResponse, fallback: string): string {
-    if (typeof err.error === 'string' && err.error.length > 0) return err.error;
-    return fallback;
   }
 }

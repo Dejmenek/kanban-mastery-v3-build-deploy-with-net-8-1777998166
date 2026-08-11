@@ -8,13 +8,14 @@ import { OverlayModule } from '@angular/cdk/overlay';
 import { Combobox, ComboboxPopup, ComboboxWidget } from '@angular/aria/combobox';
 import { Listbox, Option } from '@angular/aria/listbox';
 import { HttpErrorResponse } from '@angular/common/http';
-import { finalize } from 'rxjs';
+import { extractErrorMessage } from '../../../../shared/utils/extract-error-message';
+import { ErrorMessage } from '../../../../shared/components/error-message/error-message';
 
 @Component({
   selector: 'app-board-card',
   templateUrl: './board-card.html',
   styleUrl: './board-card.css',
-  imports: [Avatar, CdkDrag, Combobox, ComboboxPopup, ComboboxWidget, Listbox, Option, OverlayModule],
+  imports: [Avatar, CdkDrag, Combobox, ComboboxPopup, ComboboxWidget, Listbox, Option, OverlayModule, ErrorMessage],
 })
 export class BoardCard {
   private boardService = inject(BoardService);
@@ -74,7 +75,7 @@ export class BoardCard {
           this.clear();
         },
         error: (err: HttpErrorResponse) => {
-          this.errorMessage.set(this.extractErrorMessage(err, 'Failed to assign member to card.'));
+        this.errorMessage.set(extractErrorMessage(err, 'Failed to assign member to card.'));
         },
       });
   }
@@ -84,10 +85,5 @@ export class BoardCard {
     this.selectedOption.set([]);
     this.popupExpanded.set(false);
     this.errorMessage.set(null);
-  }
-
-  private extractErrorMessage(err: HttpErrorResponse, fallback: string): string {
-    if (typeof err.error === 'string' && err.error.length > 0) return err.error;
-    return fallback;
   }
 }

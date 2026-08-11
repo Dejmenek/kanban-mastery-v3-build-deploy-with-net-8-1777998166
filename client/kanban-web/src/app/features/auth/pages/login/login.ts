@@ -6,12 +6,13 @@ import { AuthService } from '../../../../core/auth/services/auth.service';
 import { LoginRequest } from '../../../../core/auth/models/auth.models';
 import { extractIdentityErrorMessage } from '../../utils/identity-error';
 import { Router } from '@angular/router';
+import { ErrorMessage } from '../../../../shared/components/error-message/error-message';
 
 @Component({
   selector: 'app-login',
   templateUrl: './login.html',
   styleUrls: ['../../auth-form.css', './login.css'],
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, ErrorMessage],
 })
 export class Login {
   private auth = inject(AuthService);
