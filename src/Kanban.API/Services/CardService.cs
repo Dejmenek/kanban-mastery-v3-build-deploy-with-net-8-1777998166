@@ -187,6 +187,7 @@ public class CardService(ApplicationDbContext context, IRetryExecutor retryExecu
         {
             var toShiftDown = await context.Cards
                 .Where(c => c.ColumnId == card.ColumnId && c.Id != card.Id && c.Position > oldPosition && c.Position <= targetPosition)
+                .OrderBy(c => c.Position)
                 .ToListAsync(cancellationToken);
             foreach (var sibling in toShiftDown) sibling.Position -= 1;
         }
@@ -194,6 +195,7 @@ public class CardService(ApplicationDbContext context, IRetryExecutor retryExecu
         {
             var toShiftUp = await context.Cards
                 .Where(c => c.ColumnId == card.ColumnId && c.Id != card.Id && c.Position >= targetPosition && c.Position < oldPosition)
+                .OrderByDescending(c => c.Position)
                 .ToListAsync(cancellationToken);
             foreach (var sibling in toShiftUp) sibling.Position += 1;
         }
@@ -208,6 +210,7 @@ public class CardService(ApplicationDbContext context, IRetryExecutor retryExecu
 
         var sourceSiblings = await context.Cards
             .Where(c => c.ColumnId == oldColumnId && c.Position > oldPosition)
+            .OrderBy(c => c.Position)
             .ToListAsync(cancellationToken);
         foreach (var sibling in sourceSiblings) sibling.Position -= 1;
 
@@ -218,6 +221,7 @@ public class CardService(ApplicationDbContext context, IRetryExecutor retryExecu
         {
             var destinationSiblings = await context.Cards
                 .Where(c => c.ColumnId == newColumnId && c.Position >= targetPosition)
+                .OrderByDescending(c => c.Position)
                 .ToListAsync(cancellationToken);
             foreach (var sibling in destinationSiblings) sibling.Position += 1;
         }
