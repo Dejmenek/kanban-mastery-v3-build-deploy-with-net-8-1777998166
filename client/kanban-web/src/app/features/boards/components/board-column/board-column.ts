@@ -1,4 +1,4 @@
-import { Component, inject, input, output, signal } from '@angular/core';
+import { Component, inject, input, signal } from '@angular/core';
 import { BoardCard } from '../board-card/board-card';
 import { CardResponse, ColumnResponse, CreateCardRequest } from '../../models/board.models';
 import { CdkDragDrop, CdkDropList } from '@angular/cdk/drag-drop';
@@ -17,13 +17,7 @@ import { ErrorMessage } from '../../../../shared/components/error-message/error-
 })
 export class BoardColumn {
   column = input.required<ColumnResponse>();
-  boardId = input.required<number>();
-  deletingCardId = input<number | null>(null);
-  dropped = output<CdkDragDrop<CardResponse[]>>();
-  cardCreated = output<CardResponse>();
-  cardAssigned = output<CardResponse>();
-  cardDeleted = output<number>();
-  protected boardService = inject(BoardService);
+  private boardService = inject(BoardService);
 
   protected addCardForm = new FormGroup({
     title: new FormControl('', Validators.required),
@@ -32,6 +26,10 @@ export class BoardColumn {
   protected errorMessage = signal<string | null>(null);
   protected isSubmitting = signal(false);
   protected isAdding = signal(false);
+
+  protected onDropped(event: CdkDragDrop<CardResponse[]>): void {
+    this.boardService.moveCard(event);
+  }
 
   protected onSubmit() {
     if (this.addCardForm.invalid) {
@@ -49,11 +47,10 @@ export class BoardColumn {
     };
 
     this.boardService
-      .createCard(this.boardId(), request)
+      .createCard(request)
       .pipe(finalize(() => this.isSubmitting.set(false)))
       .subscribe({
-        next: (card) => {
-          this.cardCreated.emit(card);
+        next: () => {
           this.addCardForm.reset();
           this.isAdding.set(false);
         },

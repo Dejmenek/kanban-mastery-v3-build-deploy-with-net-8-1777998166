@@ -6,15 +6,9 @@
   @if (column().description) {
     <p class="board-column-description">{{ column().description }}</p>
   }
-  <div class="board-column-cards" cdkDropList [cdkDropListData]="column().cards" (cdkDropListDropped)="dropped.emit($event)">
+  <div class="board-column-cards" cdkDropList [cdkDropListData]="column().cards" (cdkDropListDropped)="onDropped($event)">
     @for (card of column().cards; track card.id) {
-      <app-board-card
-        [card]="card"
-        [boardId]="boardId()"
-        [deletingCardId]="deletingCardId()"
-        (assigned)="cardAssigned.emit($event)"
-        (deleted)="cardDeleted.emit($event)"
-      />
+      <app-board-card [card]="card" />
     } @empty {
       <p class="board-column-empty">No cards yet.</p>
     }
