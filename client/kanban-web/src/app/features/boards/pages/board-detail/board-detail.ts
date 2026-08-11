@@ -1,6 +1,6 @@
 import { Component, effect, inject, input, signal } from '@angular/core';
 import { BoardColumn } from '../../components/board-column/board-column';
-import { BoardDetailsResponse, UpdateBoardRequest } from '../../models/board.models';
+import { BoardDetailsResponse, CreateColumnRequest, UpdateBoardRequest } from '../../models/board.models';
 import { BoardService } from '../../services/board.service';
 import { CdkDropListGroup } from '@angular/cdk/drag-drop';
 import { Dialog, DialogModule } from '@angular/cdk/dialog';
@@ -24,10 +24,17 @@ export class BoardDetail {
   private dialog = inject(Dialog);
 
   protected isEditingBoard = signal(false);
+  protected isCreatingColumn = signal(false);
   protected editErrorMessage = signal<string | null>(null);
+  protected createColumnErrorMessage = signal<string | null>(null);
   protected isSubmittingEdit = signal(false);
+  protected isSubmittingCreateColumn = signal(false);
   protected editBoardForm = new FormGroup({
     name: new FormControl('', Validators.required),
+    description: new FormControl(''),
+  });
+  protected createColumnForm = new FormGroup({
+    title: new FormControl('', Validators.required),
     description: new FormControl(''),
   });
 
@@ -75,5 +82,37 @@ export class BoardDetail {
     this.editBoardForm.reset();
     this.editErrorMessage.set(null);
     this.isEditingBoard.set(false);
+  }
+
+  onCreateColumnSubmit() {
+    if (this.createColumnForm.invalid) {
+      this.createColumnForm.markAllAsTouched();
+      return;
+    }
+
+    this.createColumnErrorMessage.set(null);
+    this.isSubmittingCreateColumn.set(true);
+
+    const request: CreateColumnRequest = {
+      title: this.createColumnForm.value.title!,
+      description: this.createColumnForm.value.description || null,
+    };
+
+    this.boardService
+      .createColumn(request)
+      .pipe(finalize(() => this.isSubmittingCreateColumn.set(false)))
+      .subscribe({
+        next: () => {
+          this.createColumnForm.reset();
+          this.isCreatingColumn.set(false);
+        },
+        error: (err: HttpErrorResponse) => this.createColumnErrorMessage.set(extractErrorMessage(err, 'Could not create column. Please try again.')),
+      });
+  }
+
+  onCreateColumnCancel() {
+    this.createColumnForm.reset();
+    this.createColumnErrorMessage.set(null);
+    this.isCreatingColumn.set(false);
   }
 }
