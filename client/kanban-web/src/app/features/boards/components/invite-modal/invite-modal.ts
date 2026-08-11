@@ -4,7 +4,9 @@ import { FormGroup, FormControl, ReactiveFormsModule, Validators } from '@angula
 import { HttpErrorResponse } from '@angular/common/http';
 import { finalize } from 'rxjs';
 import { BoardService } from '../../services/board.service';
-import { AddBoardMemberRequest, BoardMemberResponse } from '../../models/board.models';
+import { AddBoardMemberRequest } from '../../models/board.models';
+import { extractErrorMessage } from '../../../../shared/utils/extract-error-message';
+import { ErrorMessage } from '../../../../shared/components/error-message/error-message';
 
 export interface InviteModalData {
   boardId: number;
@@ -13,7 +15,7 @@ export interface InviteModalData {
 @Component({
   selector: 'app-invite-modal',
   templateUrl: './invite-modal.html',
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, ErrorMessage],
   host: { class: 'modal-panel' },
 })
 export class InviteModal {
@@ -44,12 +46,7 @@ export class InviteModal {
       .pipe(finalize(() => this.isSubmitting.set(false)))
       .subscribe({
         next: (member) => this.dialogRef.close(member),
-        error: (err: HttpErrorResponse) => this.errorMessage.set(this.extractErrorMessage(err)),
+        error: (err: HttpErrorResponse) => this.errorMessage.set(extractErrorMessage(err, 'Could not send invite. Please try again.')),
       });
-  }
-
-  private extractErrorMessage(err: HttpErrorResponse): string {
-    if (typeof err.error === 'string' && err.error.length > 0) return err.error;
-    return 'Could not send invite. Please try again.';
   }
 }

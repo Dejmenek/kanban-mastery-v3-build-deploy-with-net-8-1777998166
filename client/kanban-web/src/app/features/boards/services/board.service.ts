@@ -2,6 +2,7 @@ import { inject, Service } from '@angular/core';
 import { ApiService } from '../../../core/http/services/api.service';
 import { Observable } from 'rxjs';
 import { AddBoardMemberRequest, AssignCardRequest, BoardDetailsResponse, BoardMemberResponse, BoardResponse, BoardSummaryResponse, CardResponse, CreateBoardRequest, CreateCardRequest, MoveCardRequest, MoveCardResponse, UpdateBoardRequest } from '../models/board.models';
+import { extractErrorMessage } from '../../../shared/utils/extract-error-message';
 
 @Service()
 export class BoardService {

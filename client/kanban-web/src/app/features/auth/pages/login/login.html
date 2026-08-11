@@ -31,9 +31,7 @@
         }
       </div>
 
-      @if (errorMessage()) {
-        <div class="form-error" role="alert">{{ errorMessage() }}</div>
-      }
+      <app-error-message [message]="errorMessage()" />
 
       <button type="submit" class="btn-primary" [disabled]="!loginForm.valid || isSubmitting()">
         {{ isSubmitting() ? 'Logging In...' : 'Log In' }}

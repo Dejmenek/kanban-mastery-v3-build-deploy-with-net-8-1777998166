@@ -6,12 +6,14 @@ import { FormGroup, FormControl, ReactiveFormsModule, Validators } from '@angula
 import { HttpErrorResponse } from '@angular/common/http';
 import { finalize } from 'rxjs';
 import { BoardService } from '../../services/board.service';
+import { extractErrorMessage } from '../../../../shared/utils/extract-error-message';
+import { ErrorMessage } from '../../../../shared/components/error-message/error-message';
 
 @Component({
   selector: 'app-board-column',
   templateUrl: './board-column.html',
   styleUrl: './board-column.css',
-  imports: [BoardCard, CdkDropList, ReactiveFormsModule],
+  imports: [BoardCard, CdkDropList, ReactiveFormsModule, ErrorMessage],
 })
 export class BoardColumn {
   column = input.required<ColumnResponse>();
@@ -55,7 +57,7 @@ export class BoardColumn {
           this.addCardForm.reset();
           this.isAdding.set(false);
         },
-        error: (err: HttpErrorResponse) => this.errorMessage.set(this.extractErrorMessage(err)),
+        error: (err: HttpErrorResponse) => this.errorMessage.set(extractErrorMessage(err, 'Could not create card. Please try again.')),
       });
   }
 
@@ -63,10 +65,5 @@ export class BoardColumn {
     this.addCardForm.reset();
     this.errorMessage.set(null);
     this.isAdding.set(false);
-  }
-
-  private extractErrorMessage(err: HttpErrorResponse): string {
-    if (typeof err.error === 'string' && err.error.length > 0) return err.error;
-    return 'Could not create card. Please try again.';
   }
 }

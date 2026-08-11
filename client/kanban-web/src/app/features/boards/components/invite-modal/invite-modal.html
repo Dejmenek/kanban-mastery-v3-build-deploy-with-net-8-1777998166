@@ -25,9 +25,7 @@
     }
   </div>
 
-  @if (errorMessage()) {
-    <div class="form-error" role="alert">{{ errorMessage() }}</div>
-  }
+  <app-error-message [message]="errorMessage()" />
 
   <div class="form-actions">
     <button type="button" class="btn-secondary" [disabled]="isSubmitting()" (click)="dialogRef.close()">
