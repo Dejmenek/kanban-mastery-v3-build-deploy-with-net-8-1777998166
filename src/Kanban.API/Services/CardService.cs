@@ -219,6 +219,9 @@ public class CardService(ApplicationDbContext context, IRetryExecutor retryExecu
         var oldColumnId = card.ColumnId;
         var oldPosition = card.Position;
 
+        card.Position = -card.Id;
+        await context.SaveChangesAsync(cancellationToken);
+
         var sourceSiblings = await context.Cards
             .Where(c => c.ColumnId == oldColumnId && c.Position > oldPosition)
             .OrderBy(c => c.Position)
@@ -236,6 +239,8 @@ public class CardService(ApplicationDbContext context, IRetryExecutor retryExecu
                 .ToListAsync(cancellationToken);
             foreach (var sibling in destinationSiblings) sibling.Position += 1;
         }
+
+        await context.SaveChangesAsync(cancellationToken);
 
         card.ColumnId = newColumnId;
         card.Position = targetPosition;
