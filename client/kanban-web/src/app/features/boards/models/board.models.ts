@@ -21,6 +21,11 @@ export interface ColumnResponse {
   cards: CardResponse[];
 }
 
+export interface CreateColumnRequest {
+  title: string;
+  description: string | null;
+}
+
 export interface CardResponse {
   id: number;
   title: string;

@@ -18,15 +18,18 @@ import {
   ColumnResponse,
   CreateBoardRequest,
   CreateCardRequest,
+  CreateColumnRequest,
   MoveCardRequest,
   UpdateBoardRequest,
 } from '../models/board.models';
+import { ColumnService } from './column.service';
 
 @Service()
 export class BoardService {
   private api = inject(ApiService);
   private cardService = inject(CardService);
   private memberService = inject(MemberService);
+  private columnService = inject(ColumnService);
   private columnGeneration = new Map<number, number>();
 
   boardId = signal<number | null>(null);
@@ -149,6 +152,13 @@ export class BoardService {
     const boardId = this.requireBoardId();
     return this.memberService.add(boardId, request).pipe(
       tap((member) => this.members.update((current) => [...current, member])),
+    );
+  }
+
+  createColumn(request: CreateColumnRequest): Observable<ColumnResponse> {
+    const boardId = this.requireBoardId();
+    return this.columnService.create(boardId, request).pipe(
+      tap((column) => this.columns.update((current) => [...current, column])),
     );
   }
 
