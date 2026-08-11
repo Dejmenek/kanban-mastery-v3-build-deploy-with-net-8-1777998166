@@ -104,7 +104,7 @@ public class ColumnService(ApplicationDbContext context, IRetryExecutor retryExe
 
     private static bool IsPositionConflict(DbUpdateException ex) =>
         ex.InnerException is SqliteException sqliteEx && sqliteEx.SqliteErrorCode == 19 &&
-        sqliteEx.Message.Contains("IX_Columns_BoardId_Position");
+        sqliteEx.Message.Contains("Columns.BoardId, Columns.Position");
 
     private static bool IsForeignKeyConstraintViolation(DbUpdateException ex) =>
         ex.InnerException is SqliteException sqliteEx && (sqliteEx.SqliteErrorCode == 19 || sqliteEx.SqliteExtendedErrorCode == 787);
