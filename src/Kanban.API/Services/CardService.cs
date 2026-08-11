@@ -76,7 +76,18 @@ public class CardService(ApplicationDbContext context, IRetryExecutor retryExecu
 
         if (card is null) return Result.Failure(CardErrors.NotFound(cardId));
 
+        var columnId = card.ColumnId;
+        var position = card.Position;
+
         context.Cards.Remove(card);
+        await context.SaveChangesAsync(cancellationToken);
+
+        var siblingsToShift = await context.Cards
+            .Where(c => c.ColumnId == columnId && c.Position > position)
+            .OrderBy(c => c.Position)
+            .ToListAsync(cancellationToken);
+        foreach (var sibling in siblingsToShift) sibling.Position -= 1;
+
         await context.SaveChangesAsync(cancellationToken);
 
         return Result.Success();
