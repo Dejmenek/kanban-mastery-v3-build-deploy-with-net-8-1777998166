@@ -3,13 +3,13 @@
     @if (!isEditingBoard()) {
       <div>
         <div class="board-detail-title-row">
-          <h1 class="board-detail-title">{{ boardName() }}</h1>
-          @if (isOwner()) {
+          <h1 class="board-detail-title">{{ boardService.boardName() }}</h1>
+          @if (boardService.isOwner()) {
             <button type="button" class="btn-secondary btn-sm" (click)="onEditBoard()">Edit</button>
           }
         </div>
-        @if (boardDescription()) {
-          <p class="board-detail-description">{{ boardDescription() }}</p>
+        @if (boardService.boardDescription()) {
+          <p class="board-detail-description">{{ boardService.boardDescription() }}</p>
         }
       </div>
     } @else {
@@ -38,14 +38,14 @@
 
     <div class="board-detail-members-row">
       <div class="board-detail-members" aria-label="Board members">
-        @for (member of members(); track member.memberId) {
+        @for (member of boardService.members(); track member.memberId) {
           <div class="board-member">
             <app-avatar [name]="member.userName" [email]="member.email" />
             <span class="board-member-name">{{ member.userName ?? member.email ?? 'Unknown' }}</span>
           </div>
         }
       </div>
-      @if (isOwner()) {
+      @if (boardService.isOwner()) {
         <button class="btn-primary btn-sm" (click)="openDialog()">Invite</button>
       }
     </div>
@@ -55,16 +55,8 @@
   <app-error-message [message]="boardService.deleteCardError()" />
 
   <div class="board-columns" cdkDropListGroup>
-    @for (column of columns(); track column.id) {
-      <app-board-column
-        [column]="column"
-        [boardId]="board().id"
-        [deletingCardId]="deletingCardId()"
-        (dropped)="onCardDropped($event)"
-        (cardCreated)="onCardCreated(column.id, $event)"
-        (cardAssigned)="onCardAssigned($event)"
-        (cardDeleted)="onDeleteCardRequested($event)"
-      />
+    @for (column of boardService.columns(); track column.id) {
+      <app-board-column [column]="column" />
     } @empty {
       <p class="board-detail-empty">This board has no columns yet.</p>
     }
