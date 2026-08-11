@@ -72,6 +72,44 @@ public class CardServiceTests(IntegrationTestWebAppFactory<Program> factory)
     }
 
     [Fact]
+    public async Task CreateAsync_AfterDeletingMiddleCard_FillsGapInsteadOfCollidingWithLastCard()
+    {
+        // Arrange
+        var owner = await CreateUserAsync("owner@example.com", "Test123!");
+        var board = await UseDbContextAsync(context => BoardTestHelper.SeedBoardAsync(context, owner.Id));
+        var column = await UseDbContextAsync(context =>
+            BoardTestHelper.SeedColumnAsync(context, new Column { BoardId = board.Id, Title = "To Do", Position = 1 }));
+        var (card1, card2, card3) = await UseDbContextAsync(async context =>
+        {
+            var c1 = await BoardTestHelper.SeedCardAsync(context, new Card { ColumnId = column.Id, Title = "Card 1", Position = 1 });
+            var c2 = await BoardTestHelper.SeedCardAsync(context, new Card { ColumnId = column.Id, Title = "Card 2", Position = 2 });
+            var c3 = await BoardTestHelper.SeedCardAsync(context, new Card { ColumnId = column.Id, Title = "Card 3", Position = 3 });
+            return (c1, c2, c3);
+        });
+
+        var deleteResult = await UseCardServiceAsync(service =>
+            service.DeleteAsync(board.Id, card2.Id, TestContext.Current.CancellationToken));
+        Assert.True(deleteResult.IsSuccess);
+
+        // Act
+        var createResult = await UseCardServiceAsync(service =>
+            service.CreateAsync(board.Id, new CreateCardRequest("Card 4", null, column.Id), TestContext.Current.CancellationToken));
+
+        // Assert
+        Assert.True(createResult.IsSuccess);
+        Assert.Equal(3, createResult.Value.Position);
+
+        var cardsByPosition = await UseDbContextAsync(context => context.Cards
+            .Where(c => c.ColumnId == column.Id)
+            .OrderBy(c => c.Position)
+            .Select(c => new { c.Id, c.Position })
+            .ToListAsync(TestContext.Current.CancellationToken));
+
+        Assert.Equal([1, 2, 3], cardsByPosition.Select(c => c.Position));
+        Assert.Equal([card1.Id, card3.Id, createResult.Value.Id], cardsByPosition.Select(c => c.Id));
+    }
+
+    [Fact]
     public async Task CreateAsync_WithTitleAndDescription_RoundTripsAndPersists()
     {
         // Arrange
@@ -515,6 +553,60 @@ public class CardServiceTests(IntegrationTestWebAppFactory<Program> factory)
         Assert.Equal(sourcePositionsById, sourceAffected.Cards.ToDictionary(c => c.CardId, c => c.Position));
         var destinationAffected = result.Value.AffectedColumns.Single(c => c.ColumnId == destination.Id);
         Assert.Equal(destinationPositionsById, destinationAffected.Cards.ToDictionary(c => c.CardId, c => c.Position));
+    }
+
+    [Fact]
+    public async Task MoveAsync_CrossColumnMoveAfterPriorReorderChurnsRowOrder_DoesNotThrowAndProducesContiguousPositions()
+    {
+        // Arrange
+        var owner = await CreateUserAsync("owner@example.com", "Test123!");
+        var board = await UseDbContextAsync(context => BoardTestHelper.SeedBoardAsync(context, owner.Id));
+        var (source, destination) = await UseDbContextAsync(async context =>
+        {
+            var src = await BoardTestHelper.SeedColumnAsync(context, new Column { BoardId = board.Id, Title = "To Do", Position = 1 });
+            var dst = await BoardTestHelper.SeedColumnAsync(context, new Column { BoardId = board.Id, Title = "Done", Position = 2 });
+            return (src, dst);
+        });
+        var (s1, s2, s3, s4) = await UseDbContextAsync(async context =>
+        {
+            var c1 = await BoardTestHelper.SeedCardAsync(context, new Card { ColumnId = source.Id, Title = "S1", Position = 1 });
+            var c2 = await BoardTestHelper.SeedCardAsync(context, new Card { ColumnId = source.Id, Title = "S2", Position = 2 });
+            var c3 = await BoardTestHelper.SeedCardAsync(context, new Card { ColumnId = source.Id, Title = "S3", Position = 3 });
+            var c4 = await BoardTestHelper.SeedCardAsync(context, new Card { ColumnId = source.Id, Title = "S4", Position = 4 });
+            return (c1, c2, c3, c4);
+        });
+        var (d1, d2) = await UseDbContextAsync(async context =>
+        {
+            var dd1 = await BoardTestHelper.SeedCardAsync(context, new Card { ColumnId = destination.Id, Title = "D1", Position = 1 });
+            var dd2 = await BoardTestHelper.SeedCardAsync(context, new Card { ColumnId = destination.Id, Title = "D2", Position = 2 });
+            return (dd1, dd2);
+        });
+
+        var churnResult = await UseCardServiceAsync(service =>
+            service.MoveAsync(board.Id, s4.Id, new MoveCardRequest(source.Id, 1, source.Id, 4), TestContext.Current.CancellationToken));
+        Assert.True(churnResult.IsSuccess);
+
+        // Act
+        var moveResult = await UseCardServiceAsync(service =>
+            service.MoveAsync(board.Id, s1.Id, new MoveCardRequest(destination.Id, 1, source.Id, 2), TestContext.Current.CancellationToken));
+
+        // Assert
+        Assert.True(moveResult.IsSuccess);
+        Assert.Equal(1, moveResult.Value.Position);
+
+        var sourcePositionsById = await UseDbContextAsync(context => context.Cards
+            .Where(c => c.ColumnId == source.Id)
+            .ToDictionaryAsync(c => c.Id, c => c.Position, TestContext.Current.CancellationToken));
+        Assert.Equal(1, sourcePositionsById[s4.Id]);
+        Assert.Equal(2, sourcePositionsById[s2.Id]);
+        Assert.Equal(3, sourcePositionsById[s3.Id]);
+
+        var destinationPositionsById = await UseDbContextAsync(context => context.Cards
+            .Where(c => c.ColumnId == destination.Id)
+            .ToDictionaryAsync(c => c.Id, c => c.Position, TestContext.Current.CancellationToken));
+        Assert.Equal(1, destinationPositionsById[s1.Id]);
+        Assert.Equal(2, destinationPositionsById[d1.Id]);
+        Assert.Equal(3, destinationPositionsById[d2.Id]);
     }
 
     [Theory]
