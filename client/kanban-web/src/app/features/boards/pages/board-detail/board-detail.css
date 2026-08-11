@@ -83,6 +83,38 @@
   text-align: center;
 }
 
+.board-add-column-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 18rem;
+  min-width: 18rem;
+  align-self: stretch;
+  min-height: 12rem;
+  padding: var(--space-4);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--color-text-dim);
+  background: transparent;
+  border: var(--border-width-md) dashed var(--color-text-dim);
+  cursor: pointer;
+  transition: color 150ms ease, border-color 150ms ease;
+}
+
+.board-add-column-btn:hover {
+  color: var(--color-text);
+  border-color: var(--color-text);
+}
+
+.board-add-column-form {
+  flex: 0 0 18rem;
+  min-width: 18rem;
+  max-width: 18rem;
+  padding: var(--space-4);
+  background-color: color-mix(in srgb, var(--color-surface) 45%, transparent);
+  border: var(--border-width-md) solid var(--color-text-dim);
+}
+
 @media (max-width: 768px) {
   .board-detail-header {
     flex-direction: column;
@@ -97,5 +129,19 @@
     flex-direction: column;
     overflow-x: visible;
     align-items: stretch;
+  }
+
+  .board-add-column-btn {
+    flex: none;
+    min-width: 0;
+    min-height: 0;
+    align-self: auto;
+    padding: var(--space-3);
+  }
+
+  .board-add-column-form {
+    flex: none;
+    min-width: 0;
+    max-width: none;
   }
 }
