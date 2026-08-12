@@ -345,6 +345,21 @@ h1, h2, h3, h4, h5, h6 {
   pointer-events: none;
 }
 
+/* Drag & drop (Angular CDK) */
+
+.cdk-drag-preview {
+  box-shadow: var(--shadow-sm);
+  opacity: 0.9;
+}
+
+.cdk-drag-placeholder {
+  opacity: 0.3;
+}
+
+.cdk-drag-animating {
+  transition: transform 150ms cubic-bezier(0, 0, 0.2, 1);
+}
+
 /* Modals */
 
 .modal-panel {
