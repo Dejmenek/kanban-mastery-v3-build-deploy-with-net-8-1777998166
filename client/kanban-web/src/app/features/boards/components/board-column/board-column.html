@@ -1,7 +1,16 @@
 <section class="board-column">
   <header class="board-column-header">
-    <h2 class="board-column-title">{{ column().title }}</h2>
-    <span class="board-column-count">{{ column().cards.length }}</span>
+    <div class="board-column-heading">
+      <h2 class="board-column-title">{{ column().title }}</h2>
+      <span class="board-column-count">{{ column().cards.length }}</span>
+    </div>
+    <button type="button"
+            class="icon-delete-button"
+            [disabled]="isDeleting()"
+            [attr.aria-label]="isDeleting() ? 'Deleting column…' : 'Delete column'"
+            (click)="onDeleteClick()">
+      <span class="delete-icon" aria-hidden="true">&times;</span>
+    </button>
   </header>
   @if (column().description) {
     <p class="board-column-description">{{ column().description }}</p>

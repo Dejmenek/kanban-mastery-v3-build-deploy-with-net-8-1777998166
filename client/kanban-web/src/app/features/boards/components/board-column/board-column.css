@@ -24,6 +24,12 @@
   border-bottom: var(--border-width-md) solid var(--color-text-dim);
 }
 
+.board-column-heading {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-2);
+}
+
 .board-column-title {
   font-family: var(--font-mono);
   font-size: var(--text-sm);

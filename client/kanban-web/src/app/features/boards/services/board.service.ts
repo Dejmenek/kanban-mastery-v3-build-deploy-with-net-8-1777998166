@@ -41,7 +41,9 @@ export class BoardService {
   members = signal<BoardMemberResponse[]>([]);
   moveError = signal<string | null>(null);
   deleteCardError = signal<string | null>(null);
+  deleteColumnError = signal<string | null>(null);
   deletingCardIds = signal<ReadonlySet<number>>(new Set());
+  deletingColumnIds = signal<ReadonlySet<number>>(new Set());
   assigningCardIds = signal<ReadonlySet<number>>(new Set());
 
   setBoard(board: BoardDetailsResponse): void {
@@ -51,7 +53,9 @@ export class BoardService {
     this.userRole.set(board.userRole);
     this.moveError.set(null);
     this.deleteCardError.set(null);
+    this.deleteColumnError.set(null);
     this.deletingCardIds.set(new Set());
+    this.deletingColumnIds.set(new Set());
     this.assigningCardIds.set(new Set());
     this.columnGeneration.clear();
     this.applyBoardSnapshot(board);
@@ -159,6 +163,27 @@ export class BoardService {
     const boardId = this.requireBoardId();
     return this.columnService.create(boardId, request).pipe(
       tap((column) => this.columns.update((current) => [...current, column])),
+    );
+  }
+
+  deleteColumn(columnId: number): Observable<void> {
+    const boardId = this.requireBoardId();
+    this.deletingColumnIds.update((ids) => new Set(ids).add(columnId));
+    this.deleteColumnError.set(null);
+
+    return this.columnService.delete(boardId, columnId).pipe(
+      tap(() => this.columns.update((current) => current.filter((column) => column.id !== columnId))),
+      catchError((err: HttpErrorResponse) => {
+        this.deleteColumnError.set(extractErrorMessage(err, 'Could not delete column. Please try again.'));
+        return EMPTY;
+      }),
+      finalize(() =>
+        this.deletingColumnIds.update((ids) => {
+          const next = new Set(ids);
+          next.delete(columnId);
+          return next;
+        }),
+      ),
     );
   }
 
