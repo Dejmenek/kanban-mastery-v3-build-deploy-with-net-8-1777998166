@@ -506,4 +506,213 @@ public class ColumnServiceTests(IntegrationTestWebAppFactory<Program> factory)
         var columnCount = await UseDbContextAsync(context => context.Columns.CountAsync(c => c.BoardId == board.Id, TestContext.Current.CancellationToken));
         Assert.Equal(0, columnCount);
     }
+
+    [Fact]
+    public async Task MoveAsync_ReorderForward_ShiftsSiblingsBetweenOldAndNewPositionDown()
+    {
+        // Arrange
+        var owner = await CreateUserAsync("owner@example.com", "Test123!");
+        var board = await UseDbContextAsync(context => BoardTestHelper.SeedBoardAsync(context, owner.Id));
+        var (first, second, third, fourth) = await UseDbContextAsync(async context =>
+        {
+            var c1 = await BoardTestHelper.SeedColumnAsync(context, new Column { BoardId = board.Id, Title = "Col 1", Position = 1 });
+            var c2 = await BoardTestHelper.SeedColumnAsync(context, new Column { BoardId = board.Id, Title = "Col 2", Position = 2 });
+            var c3 = await BoardTestHelper.SeedColumnAsync(context, new Column { BoardId = board.Id, Title = "Col 3", Position = 3 });
+            var c4 = await BoardTestHelper.SeedColumnAsync(context, new Column { BoardId = board.Id, Title = "Col 4", Position = 4 });
+            return (c1, c2, c3, c4);
+        });
+
+        // Act
+        var result = await UseColumnServiceAsync(service =>
+            service.MoveAsync(board.Id, first.Id, new MoveColumnRequest(3, 1), TestContext.Current.CancellationToken));
+
+        // Assert
+        Assert.True(result.IsSuccess);
+        Assert.Equal(3, result.Value.Position);
+
+        var positionsById = await UseDbContextAsync(context => context.Columns
+            .Where(c => c.BoardId == board.Id)
+            .ToDictionaryAsync(c => c.Id, c => c.Position, TestContext.Current.CancellationToken));
+
+        Assert.Equal(3, positionsById[first.Id]);
+        Assert.Equal(1, positionsById[second.Id]);
+        Assert.Equal(2, positionsById[third.Id]);
+        Assert.Equal(4, positionsById[fourth.Id]);
+    }
+
+    [Fact]
+    public async Task MoveAsync_ReorderBackward_ShiftsSiblingsBetweenNewAndOldPositionUp()
+    {
+        // Arrange
+        var owner = await CreateUserAsync("owner@example.com", "Test123!");
+        var board = await UseDbContextAsync(context => BoardTestHelper.SeedBoardAsync(context, owner.Id));
+        var (first, second, third, fourth) = await UseDbContextAsync(async context =>
+        {
+            var c1 = await BoardTestHelper.SeedColumnAsync(context, new Column { BoardId = board.Id, Title = "Col 1", Position = 1 });
+            var c2 = await BoardTestHelper.SeedColumnAsync(context, new Column { BoardId = board.Id, Title = "Col 2", Position = 2 });
+            var c3 = await BoardTestHelper.SeedColumnAsync(context, new Column { BoardId = board.Id, Title = "Col 3", Position = 3 });
+            var c4 = await BoardTestHelper.SeedColumnAsync(context, new Column { BoardId = board.Id, Title = "Col 4", Position = 4 });
+            return (c1, c2, c3, c4);
+        });
+
+        // Act
+        var result = await UseColumnServiceAsync(service =>
+            service.MoveAsync(board.Id, fourth.Id, new MoveColumnRequest(2, 4), TestContext.Current.CancellationToken));
+
+        // Assert
+        Assert.True(result.IsSuccess);
+        Assert.Equal(2, result.Value.Position);
+
+        var positionsById = await UseDbContextAsync(context => context.Columns
+            .Where(c => c.BoardId == board.Id)
+            .ToDictionaryAsync(c => c.Id, c => c.Position, TestContext.Current.CancellationToken));
+
+        Assert.Equal(1, positionsById[first.Id]);
+        Assert.Equal(3, positionsById[second.Id]);
+        Assert.Equal(4, positionsById[third.Id]);
+        Assert.Equal(2, positionsById[fourth.Id]);
+    }
+
+    [Fact]
+    public async Task MoveAsync_WithUnchangedPositionValue_IsNoOpForSiblings()
+    {
+        // Arrange
+        var owner = await CreateUserAsync("owner@example.com", "Test123!");
+        var board = await UseDbContextAsync(context => BoardTestHelper.SeedBoardAsync(context, owner.Id));
+        var (first, second) = await UseDbContextAsync(async context =>
+        {
+            var c1 = await BoardTestHelper.SeedColumnAsync(context, new Column { BoardId = board.Id, Title = "Col 1", Position = 1 });
+            var c2 = await BoardTestHelper.SeedColumnAsync(context, new Column { BoardId = board.Id, Title = "Col 2", Position = 2 });
+            return (c1, c2);
+        });
+
+        // Act
+        var result = await UseColumnServiceAsync(service =>
+            service.MoveAsync(board.Id, first.Id, new MoveColumnRequest(1, 1), TestContext.Current.CancellationToken));
+
+        // Assert
+        Assert.True(result.IsSuccess);
+        Assert.Equal(1, result.Value.Position);
+
+        var positionsById = await UseDbContextAsync(context => context.Columns
+            .Where(c => c.BoardId == board.Id)
+            .ToDictionaryAsync(c => c.Id, c => c.Position, TestContext.Current.CancellationToken));
+
+        Assert.Equal(1, positionsById[first.Id]);
+        Assert.Equal(2, positionsById[second.Id]);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-5)]
+    [InlineData(100)]
+    public async Task MoveAsync_WithOutOfRangePosition_FallsBackToAppend(int requestedPosition)
+    {
+        // Arrange
+        var owner = await CreateUserAsync("owner@example.com", "Test123!");
+        var board = await UseDbContextAsync(context => BoardTestHelper.SeedBoardAsync(context, owner.Id));
+        var (first, second, third) = await UseDbContextAsync(async context =>
+        {
+            var c1 = await BoardTestHelper.SeedColumnAsync(context, new Column { BoardId = board.Id, Title = "Col 1", Position = 1 });
+            var c2 = await BoardTestHelper.SeedColumnAsync(context, new Column { BoardId = board.Id, Title = "Col 2", Position = 2 });
+            var c3 = await BoardTestHelper.SeedColumnAsync(context, new Column { BoardId = board.Id, Title = "Col 3", Position = 3 });
+            return (c1, c2, c3);
+        });
+
+        // Act
+        var result = await UseColumnServiceAsync(service =>
+            service.MoveAsync(board.Id, first.Id, new MoveColumnRequest(requestedPosition, 1), TestContext.Current.CancellationToken));
+
+        // Assert
+        Assert.True(result.IsSuccess);
+        Assert.Equal(3, result.Value.Position);
+
+        var positionsById = await UseDbContextAsync(context => context.Columns
+            .Where(c => c.BoardId == board.Id)
+            .ToDictionaryAsync(c => c.Id, c => c.Position, TestContext.Current.CancellationToken));
+
+        Assert.Equal(3, positionsById[first.Id]);
+        Assert.Equal(1, positionsById[second.Id]);
+        Assert.Equal(2, positionsById[third.Id]);
+    }
+
+    [Fact]
+    public async Task MoveAsync_WithStaleExpectedPosition_ReturnsMoveConflictAndPersistsNothing()
+    {
+        // Arrange
+        var owner = await CreateUserAsync("owner@example.com", "Test123!");
+        var board = await UseDbContextAsync(context => BoardTestHelper.SeedBoardAsync(context, owner.Id));
+        var (first, second) = await UseDbContextAsync(async context =>
+        {
+            var c1 = await BoardTestHelper.SeedColumnAsync(context, new Column { BoardId = board.Id, Title = "Col 1", Position = 1 });
+            var c2 = await BoardTestHelper.SeedColumnAsync(context, new Column { BoardId = board.Id, Title = "Col 2", Position = 2 });
+            return (c1, c2);
+        });
+
+        // Act
+        var result = await UseColumnServiceAsync(service =>
+            service.MoveAsync(board.Id, first.Id, new MoveColumnRequest(2, 99), TestContext.Current.CancellationToken));
+
+        // Assert
+        Assert.True(result.IsFailure);
+        Assert.Equal(ColumnErrors.MoveConflict(first.Id), result.Error);
+
+        var positionsById = await UseDbContextAsync(context => context.Columns
+            .Where(c => c.BoardId == board.Id)
+            .ToDictionaryAsync(c => c.Id, c => c.Position, TestContext.Current.CancellationToken));
+
+        Assert.Equal(1, positionsById[first.Id]);
+        Assert.Equal(2, positionsById[second.Id]);
+    }
+
+    [Fact]
+    public async Task MoveAsync_ColumnBelongingToAnotherBoard_ReturnsNotFound()
+    {
+        // Arrange
+        var owner = await CreateUserAsync("owner@example.com", "Test123!");
+        var board = await UseDbContextAsync(context => BoardTestHelper.SeedBoardAsync(context, owner.Id));
+        var otherBoard = await UseDbContextAsync(context => BoardTestHelper.SeedBoardAsync(context, owner.Id));
+        var column = await UseDbContextAsync(context =>
+            BoardTestHelper.SeedColumnAsync(context, new Column { BoardId = otherBoard.Id, Title = "Col 1", Position = 1 }));
+
+        // Act
+        var result = await UseColumnServiceAsync(service =>
+            service.MoveAsync(board.Id, column.Id, new MoveColumnRequest(1, 1), TestContext.Current.CancellationToken));
+
+        // Assert
+        Assert.True(result.IsFailure);
+        Assert.Equal(ColumnErrors.NotFound(column.Id), result.Error);
+    }
+
+    [Fact]
+    public async Task MoveAsync_WhenRetriesExhausted_ReturnsPositionConflictFailureAndPersistsNothing()
+    {
+        // Arrange
+        var owner = await CreateUserAsync("owner@example.com", "Test123!");
+        var board = await UseDbContextAsync(context => BoardTestHelper.SeedBoardAsync(context, owner.Id));
+        var (first, second) = await UseDbContextAsync(async context =>
+        {
+            var c1 = await BoardTestHelper.SeedColumnAsync(context, new Column { BoardId = board.Id, Title = "Col 1", Position = 1 });
+            var c2 = await BoardTestHelper.SeedColumnAsync(context, new Column { BoardId = board.Id, Title = "Col 2", Position = 2 });
+            return (c1, c2);
+        });
+
+        // Act
+        var result = await UseDbContextAsync(context =>
+        {
+            var service = new ColumnService(context, new AlwaysExhaustedRetryExecutor());
+            return service.MoveAsync(board.Id, first.Id, new MoveColumnRequest(2, 1), TestContext.Current.CancellationToken);
+        });
+
+        // Assert
+        Assert.True(result.IsFailure);
+        Assert.Equal(ColumnErrors.PositionConflict(board.Id), result.Error);
+
+        var positionsById = await UseDbContextAsync(context => context.Columns
+            .Where(c => c.BoardId == board.Id)
+            .ToDictionaryAsync(c => c.Id, c => c.Position, TestContext.Current.CancellationToken));
+
+        Assert.Equal(1, positionsById[first.Id]);
+        Assert.Equal(2, positionsById[second.Id]);
+    }
 }
