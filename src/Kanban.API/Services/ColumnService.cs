@@ -17,7 +17,7 @@ public class ColumnService(ApplicationDbContext context, IRetryExecutor retryExe
         return await retryExecutor.ExecuteAsync(
             maxAttempts: MaxAttempts,
             operation: () => TryCreateAsync(boardId, request, cancellationToken),
-            isRetryable: IsPositionConflict,
+            isRetryable: IsRetryableConflict,
             onExhausted: () => Result.Failure<ColumnResponse>(ColumnErrors.PositionConflict(boardId)),
             cancellationToken: cancellationToken
         );
@@ -112,7 +112,78 @@ public class ColumnService(ApplicationDbContext context, IRetryExecutor retryExe
         ));
     }
 
-    private static bool IsPositionConflict(DbUpdateException ex) =>
+    public async Task<Result<MoveColumnResponse>> MoveAsync(int boardId, int columnId, MoveColumnRequest request, CancellationToken cancellationToken = default)
+    {
+        return await retryExecutor.ExecuteAsync(
+            maxAttempts: MaxAttempts,
+            operation: () => TryMoveAsync(boardId, columnId, request, cancellationToken),
+            isRetryable: IsRetryableConflict,
+            onExhausted: () => Result.Failure<MoveColumnResponse>(ColumnErrors.PositionConflict(boardId)),
+            cancellationToken: cancellationToken
+        );
+    }
+
+    private async Task<Result<MoveColumnResponse>> TryMoveAsync(int boardId, int columnId, MoveColumnRequest request, CancellationToken cancellationToken)
+    {
+        var column = await context.Columns.FirstOrDefaultAsync(c => c.Id == columnId && c.BoardId == boardId, cancellationToken);
+        if (column is null) return Result.Failure<MoveColumnResponse>(ColumnErrors.NotFound(columnId));
+
+        if (column.Position != request.ExpectedPosition)
+            return Result.Failure<MoveColumnResponse>(ColumnErrors.MoveConflict(columnId));
+
+        await using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
+
+        await ReorderAsync(column, request.TargetPosition, cancellationToken);
+
+        await context.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+
+        var affectedColumns = await GetAffectedColumnsAsync(boardId, cancellationToken);
+
+        return Result.Success(new MoveColumnResponse(column.Id, column.Position, affectedColumns));
+    }
+
+    private async Task ReorderAsync(Column column, int requestedPosition, CancellationToken cancellationToken)
+    {
+        var countInBoard = await context.Columns.CountAsync(c => c.BoardId == column.BoardId, cancellationToken);
+        var targetPosition = PositionResolver.Resolve(requestedPosition, countInBoard - 1);
+        var oldPosition = column.Position;
+
+        if (targetPosition == oldPosition) return;
+
+        column.Position = -column.Id;
+        await context.SaveChangesAsync(cancellationToken);
+
+        if (targetPosition > oldPosition)
+        {
+            var toShiftDown = await context.Columns
+                .Where(c => c.BoardId == column.BoardId && c.Id != column.Id && c.Position > oldPosition && c.Position <= targetPosition)
+                .OrderBy(c => c.Position)
+                .ToListAsync(cancellationToken);
+            foreach (var sibling in toShiftDown) sibling.Position -= 1;
+        }
+        else
+        {
+            var toShiftUp = await context.Columns
+                .Where(c => c.BoardId == column.BoardId && c.Id != column.Id && c.Position >= targetPosition && c.Position < oldPosition)
+                .OrderByDescending(c => c.Position)
+                .ToListAsync(cancellationToken);
+            foreach (var sibling in toShiftUp) sibling.Position += 1;
+        }
+
+        column.Position = targetPosition;
+    }
+
+    private async Task<IReadOnlyList<ColumnPositionResponse>> GetAffectedColumnsAsync(int boardId, CancellationToken cancellationToken)
+    {
+        return await context.Columns
+            .Where(c => c.BoardId == boardId)
+            .OrderBy(c => c.Position)
+            .Select(c => new ColumnPositionResponse(c.Id, c.Position))
+            .ToListAsync(cancellationToken);
+    }
+
+    private static bool IsRetryableConflict(DbUpdateException ex) =>
         ex.InnerException is SqliteException sqliteEx && sqliteEx.SqliteErrorCode == 19 &&
         sqliteEx.Message.Contains("Columns.BoardId, Columns.Position");
 
