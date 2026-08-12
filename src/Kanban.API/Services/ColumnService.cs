@@ -69,7 +69,17 @@ public class ColumnService(ApplicationDbContext context, IRetryExecutor retryExe
 
             if (column is null) return Result.Failure(ColumnErrors.NotFound(columnId));
 
+            var position = column.Position;
+
             context.Columns.Remove(column);
+            await context.SaveChangesAsync(cancellationToken);
+
+            var siblingsToShift = await context.Columns
+                .Where(c => c.BoardId == boardId && c.Position > position)
+                .OrderBy(c => c.Position)
+                .ToListAsync(cancellationToken);
+            foreach (var sibling in siblingsToShift) sibling.Position -= 1;
+
             await context.SaveChangesAsync(cancellationToken);
 
             return Result.Success();
