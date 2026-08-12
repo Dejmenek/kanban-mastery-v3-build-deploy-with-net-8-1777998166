@@ -15,6 +15,7 @@ import {
   BoardResponse,
   BoardSummaryResponse,
   CardResponse,
+  ColumnPositionResponse,
   ColumnResponse,
   CreateBoardRequest,
   CreateCardRequest,
@@ -32,6 +33,7 @@ export class BoardService {
   private memberService = inject(MemberService);
   private columnService = inject(ColumnService);
   private columnGeneration = new Map<number, number>();
+  private moveColumnGeneration = 0;
 
   boardId = signal<number | null>(null);
   boardName = signal('');
@@ -59,6 +61,7 @@ export class BoardService {
     this.deletingColumnIds.set(new Set());
     this.assigningCardIds.set(new Set());
     this.columnGeneration.clear();
+    this.moveColumnGeneration = 0;
     this.applyBoardSnapshot(board);
   }
 
@@ -198,6 +201,27 @@ export class BoardService {
       ),
     );
   }
+
+  moveColumn(event: CdkDragDrop<ColumnResponse[]>): void {
+    const column = event.item.data as ColumnResponse;
+    const expectedPosition = event.previousIndex + 1;
+    const targetPosition = event.currentIndex + 1;
+    const snapshot = this.columns();
+
+    const reordered = [...snapshot];
+    moveItemInArray(reordered, event.previousIndex, event.currentIndex);
+    this.columns.set(reordered);
+    this.moveError.set(null);
+
+    const generation = ++this.moveColumnGeneration;
+    const boardId = this.requireBoardId();
+
+    this.columnService.move(boardId, column.id, { targetPosition, expectedPosition }).subscribe({
+      next: (response) => this.reconcileColumns(response.affectedColumns, generation),
+      error: () => this.handleMoveColumnError(generation, snapshot),
+    });
+  }
+
   moveCard(event: CdkDragDrop<CardResponse[]>): void {
     const card = event.item.data as CardResponse;
     const expectedColumnId = this.findColumnIdForCards(event.previousContainer.data);
@@ -306,6 +330,25 @@ export class BoardService {
       }),
     );
     this.moveError.set('Could not move card — refreshing board.');
+    this.refetchBoard();
+  }
+
+  private reconcileColumns(affected: readonly ColumnPositionResponse[], generation: number): void {
+    if (generation !== this.moveColumnGeneration) return;
+
+    const positionById = new Map(affected.map((a) => [a.columnId, a.position]));
+    this.columns.set(
+      this.columns()
+        .map((c) => (positionById.has(c.id) ? { ...c, position: positionById.get(c.id)! } : c))
+        .sort((a, b) => a.position - b.position),
+    );
+  }
+
+  private handleMoveColumnError(generation: number, snapshot: ColumnResponse[]): void {
+    if (generation !== this.moveColumnGeneration) return;
+
+    this.columns.set(snapshot);
+    this.moveError.set('Could not move column — refreshing board.');
     this.refetchBoard();
   }
 

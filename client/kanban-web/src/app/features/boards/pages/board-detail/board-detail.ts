@@ -1,8 +1,8 @@
 import { Component, effect, inject, input, signal } from '@angular/core';
 import { BoardColumn } from '../../components/board-column/board-column';
-import { BoardDetailsResponse, CreateColumnRequest, UpdateBoardRequest } from '../../models/board.models';
+import { BoardDetailsResponse, ColumnResponse, CreateColumnRequest, UpdateBoardRequest } from '../../models/board.models';
 import { BoardService } from '../../services/board.service';
-import { CdkDropListGroup } from '@angular/cdk/drag-drop';
+import { CdkDrag, CdkDragDrop, CdkDropList, CdkDropListGroup } from '@angular/cdk/drag-drop';
 import { Dialog, DialogModule } from '@angular/cdk/dialog';
 import { InviteModal } from '../../components/invite-modal/invite-modal';
 import { Avatar } from '../../../../shared/components/avatar/avatar';
@@ -16,7 +16,7 @@ import { ErrorMessage } from '../../../../shared/components/error-message/error-
   selector: 'app-board-detail',
   templateUrl: './board-detail.html',
   styleUrl: './board-detail.css',
-  imports: [BoardColumn, CdkDropListGroup, DialogModule, Avatar, ReactiveFormsModule, ErrorMessage],
+  imports: [BoardColumn, CdkDropListGroup, CdkDropList, CdkDrag, DialogModule, Avatar, ReactiveFormsModule, ErrorMessage],
 })
 export class BoardDetail {
   board = input.required<BoardDetailsResponse>();
@@ -114,5 +114,13 @@ export class BoardDetail {
     this.createColumnForm.reset();
     this.createColumnErrorMessage.set(null);
     this.isCreatingColumn.set(false);
+  }
+
+  onColumnDropped(event: CdkDragDrop<ColumnResponse[]>): void {
+    this.boardService.moveColumn(event);
+  }
+
+  onColumnDragStarted(): void {
+    document.body.dispatchEvent(new MouseEvent('click', { cancelable: true }));
   }
 }

@@ -1,7 +1,7 @@
 import { Component, computed, inject, input, signal } from '@angular/core';
 import { BoardCard } from '../board-card/board-card';
-import { CardResponse, ColumnResponse, CreateCardRequest } from '../../models/board.models';
-import { CdkDragDrop, CdkDropList } from '@angular/cdk/drag-drop';
+import { CardResponse, ColumnResponse, CreateCardRequest, UpdateColumnRequest } from '../../models/board.models';
+import { CdkDragDrop, CdkDragHandle, CdkDropList } from '@angular/cdk/drag-drop';
 import { FormGroup, FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { finalize } from 'rxjs';
@@ -15,7 +15,7 @@ import { ConfirmModal } from '../../../../shared/components/confirm-modal/confir
   selector: 'app-board-column',
   templateUrl: './board-column.html',
   styleUrl: './board-column.css',
-  imports: [BoardCard, CdkDropList, ReactiveFormsModule, ErrorMessage],
+  imports: [BoardCard, CdkDropList, CdkDragHandle, ReactiveFormsModule, ErrorMessage],
 })
 export class BoardColumn {
   column = input.required<ColumnResponse>();
@@ -114,7 +114,7 @@ export class BoardColumn {
       .subscribe({
         next: () => this.isEditing.set(false),
         error: (err: HttpErrorResponse) => this.editErrorMessage.set(extractErrorMessage(err, 'Could not update column. Please try again.')),
-    });
+      });
   }
 
   protected onEditCancel() {

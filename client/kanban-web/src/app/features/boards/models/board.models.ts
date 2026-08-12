@@ -30,6 +30,23 @@ export interface UpdateColumnRequest {
   title: string;
   description: string | null;
 }
+
+export interface MoveColumnRequest {
+  targetPosition: number;
+  expectedPosition: number;
+}
+
+export interface ColumnPositionResponse {
+  columnId: number;
+  position: number;
+}
+
+export interface MoveColumnResponse {
+  columnId: number;
+  position: number;
+  affectedColumns: ColumnPositionResponse[];
+}
+
 export interface CardResponse {
   id: number;
   title: string;

@@ -47,7 +47,9 @@
       }
     </div>
 
-    <ng-template [cdkConnectedOverlay]="{ origin, usePopover: 'inline', matchWidth: true }" [cdkConnectedOverlayOpen]="popupExpanded()">
+    <ng-template [cdkConnectedOverlay]="{ origin, usePopover: 'inline', matchWidth: true }"
+                 [cdkConnectedOverlayOpen]="popupExpanded()"
+                 (overlayOutsideClick)="popupExpanded.set(false)">
       <ng-template ngComboboxPopup [combobox]="combobox">
         <div class="popup">
           @if (query().trim().length < 2) {
