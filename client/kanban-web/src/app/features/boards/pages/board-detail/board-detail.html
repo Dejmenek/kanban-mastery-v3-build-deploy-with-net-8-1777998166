@@ -55,38 +55,44 @@
   <app-error-message [message]="boardService.deleteCardError()" />
   <app-error-message [message]="boardService.deleteColumnError()" />
 
-  <div class="board-columns" cdkDropListGroup>
-    @for (column of boardService.columns(); track column.id) {
-    <app-board-column [column]="column" />
-    } @empty {
-    <p class="board-detail-empty">This board has no columns yet.</p>
-    }
-    @if (!isCreatingColumn()) {
-    <button type="button" class="board-add-column-btn" (click)="isCreatingColumn.set(true)">+ Create column</button>
-    } @else {
-    <form class="form board-add-column-form" [formGroup]="createColumnForm" (ngSubmit)="onCreateColumnSubmit()" novalidate>
-      <div class="form-field">
-        <input type="text"
-               formControlName="title"
-               placeholder="Column title"
-               [class.has-error]="createColumnForm.controls.title.invalid && createColumnForm.controls.title.touched" />
-        @if (createColumnForm.controls.title.touched && createColumnForm.controls.title.hasError('required')) {
-        <span class="field-error">Title is required.</span>
-        }
-      </div>
-      <div class="form-field">
-        <textarea formControlName="description" placeholder="Description (optional)"></textarea>
-      </div>
+  <div class="board-columns-dnd"
+       cdkDropList
+       cdkDropListOrientation="horizontal"
+       [cdkDropListData]="boardService.columns()"
+       (cdkDropListDropped)="onColumnDropped($event)">
+    <div class="board-columns" cdkDropListGroup>
+      @for (column of boardService.columns(); track column.id) {
+      <app-board-column cdkDrag [cdkDragData]="column" [column]="column" (cdkDragStarted)="onColumnDragStarted()" />
+      } @empty {
+      <p class="board-detail-empty">This board has no columns yet.</p>
+      }
+      @if (!isCreatingColumn()) {
+      <button type="button" class="board-add-column-btn" (click)="isCreatingColumn.set(true)">+ Create column</button>
+      } @else {
+      <form class="form board-add-column-form" [formGroup]="createColumnForm" (ngSubmit)="onCreateColumnSubmit()" novalidate>
+        <div class="form-field">
+          <input type="text"
+                 formControlName="title"
+                 placeholder="Column title"
+                 [class.has-error]="createColumnForm.controls.title.invalid && createColumnForm.controls.title.touched" />
+          @if (createColumnForm.controls.title.touched && createColumnForm.controls.title.hasError('required')) {
+          <span class="field-error">Title is required.</span>
+          }
+        </div>
+        <div class="form-field">
+          <textarea formControlName="description" placeholder="Description (optional)"></textarea>
+        </div>
 
-      <app-error-message [message]="createColumnErrorMessage()" />
+        <app-error-message [message]="createColumnErrorMessage()" />
 
-      <div class="form-actions">
-        <button type="button" class="btn-secondary btn-sm" [disabled]="isSubmittingCreateColumn()" (click)="onCreateColumnCancel()">Cancel</button>
-        <button type="submit" class="btn-primary btn-sm" [disabled]="!createColumnForm.valid || isSubmittingCreateColumn()">
-          {{ isSubmittingCreateColumn() ? 'Creating...' : 'Create column' }}
-        </button>
-      </div>
-    </form>
-    }
+        <div class="form-actions">
+          <button type="button" class="btn-secondary btn-sm" [disabled]="isSubmittingCreateColumn()" (click)="onCreateColumnCancel()">Cancel</button>
+          <button type="submit" class="btn-primary btn-sm" [disabled]="!createColumnForm.valid || isSubmittingCreateColumn()">
+            {{ isSubmittingCreateColumn() ? 'Creating...' : 'Create column' }}
+          </button>
+        </div>
+      </form>
+      }
+    </div>
   </div>
 </div>

@@ -1,21 +1,22 @@
 <section class="board-column">
   <header class="board-column-header">
     <div class="board-column-heading">
+      <button type="button" class="column-drag-handle" [class.disabled]="isEditing()" cdkDragHandle [cdkDragHandleDisabled]="isEditing()" aria-label="Reorder column">⠿</button>
       @if (!isEditing()) {
-      <h2 class="board-column-title">{{ column().title }}</h2>
-      <span class="board-column-count">{{ column().cards.length }}</span>
+        <h2 class="board-column-title">{{ column().title }}</h2>
+        <span class="board-column-count">{{ column().cards.length }}</span>
       }
     </div>
     @if (!isEditing()) {
       <div class="board-column-header-actions">
         <button type="button" class="btn-secondary btn-sm" (click)="onEditClick()">Edit</button>
-    <button type="button"
-            class="icon-delete-button"
-            [disabled]="isDeleting()"
-            [attr.aria-label]="isDeleting() ? 'Deleting column…' : 'Delete column'"
-            (click)="onDeleteClick()">
-      <span class="delete-icon" aria-hidden="true">&times;</span>
-    </button>
+        <button type="button"
+                class="icon-delete-button"
+                [disabled]="isDeleting()"
+                [attr.aria-label]="isDeleting() ? 'Deleting column…' : 'Delete column'"
+                (click)="onDeleteClick()">
+          <span class="delete-icon" aria-hidden="true">&times;</span>
+        </button>
       </div>
     }
   </header>
