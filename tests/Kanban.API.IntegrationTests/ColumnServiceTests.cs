@@ -432,6 +432,37 @@ public class ColumnServiceTests(IntegrationTestWebAppFactory<Program> factory)
     }
 
     [Fact]
+    public async Task DeleteAsync_WithMiddleColumn_ShiftsRemainingColumnsToFillGap()
+    {
+        // Arrange
+        var owner = await CreateUserAsync("owner@example.com", "Test123!");
+        var board = await UseDbContextAsync(context => BoardTestHelper.SeedBoardAsync(context, owner.Id));
+        var (column1, column2, column3) = await UseDbContextAsync(async context =>
+        {
+            var c1 = await BoardTestHelper.SeedColumnAsync(context, new Column { BoardId = board.Id, Title = "Column 1", Position = 1 });
+            var c2 = await BoardTestHelper.SeedColumnAsync(context, new Column { BoardId = board.Id, Title = "Column 2", Position = 2 });
+            var c3 = await BoardTestHelper.SeedColumnAsync(context, new Column { BoardId = board.Id, Title = "Column 3", Position = 3 });
+            return (c1, c2, c3);
+        });
+
+        // Act
+        var result = await UseColumnServiceAsync(service =>
+            service.DeleteAsync(board.Id, column2.Id, TestContext.Current.CancellationToken));
+
+        // Assert
+        Assert.True(result.IsSuccess);
+
+        var columnsByPosition = await UseDbContextAsync(context => context.Columns
+            .Where(c => c.BoardId == board.Id)
+            .OrderBy(c => c.Position)
+            .Select(c => new { c.Id, c.Position })
+            .ToListAsync(TestContext.Current.CancellationToken));
+
+        Assert.Equal([1, 2], columnsByPosition.Select(c => c.Position));
+        Assert.Equal([column1.Id, column3.Id], columnsByPosition.Select(c => c.Id));
+    }
+
+    [Fact]
     public async Task DeleteAsync_WithCards_ReturnsHasCardsFailure()
     {
         // Arrange
