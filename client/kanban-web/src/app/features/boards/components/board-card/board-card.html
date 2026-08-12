@@ -1,10 +1,10 @@
 <article class="board-card" cdkDrag [cdkDragData]="card()" [cdkDragDisabled]="popupExpanded()">
   <button type="button"
-          class="card-delete-button"
+          class="card-delete-button icon-delete-button"
           [disabled]="isDeleting()"
           [attr.aria-label]="isDeleting() ? 'Deleting card…' : 'Delete card'"
           (click)="onDeleteClick()">
-    <span class="card-delete-icon" aria-hidden="true">&times;</span>
+    <span class="delete-icon" aria-hidden="true">&times;</span>
   </button>
   <h3 class="board-card-title">{{ card().title }}</h3>
   @if (card().description) {
