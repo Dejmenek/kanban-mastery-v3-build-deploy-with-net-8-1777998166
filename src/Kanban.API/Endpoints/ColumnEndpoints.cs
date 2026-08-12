@@ -33,6 +33,12 @@ public static class ColumnEndpoints
             .Produces<string>(StatusCodes.Status404NotFound)
             .Produces<string>(StatusCodes.Status409Conflict)
             .ProducesProblem(StatusCodes.Status500InternalServerError);
+        columns.MapPut("/{columnId:int}/position", MoveColumn)
+            .Produces<MoveColumnResponse>(StatusCodes.Status200OK)
+            .Produces(StatusCodes.Status403Forbidden)
+            .Produces<string>(StatusCodes.Status404NotFound)
+            .Produces<string>(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status500InternalServerError);
     }
 
     private static async Task<IResult> CreateColumn(
@@ -84,6 +90,25 @@ public static class ColumnEndpoints
         }
 
         var result = await columnService.UpdateAsync(boardId, columnId, request, cancellationToken);
+        if (result.IsFailure)
+        {
+            return result.Error.ToTypedResult();
+        }
+
+        return TypedResults.Ok(result.Value);
+    }
+
+    private static async Task<IResult> MoveColumn(
+        int boardId, int columnId, MoveColumnRequest request, IColumnService columnService,
+        IAuthorizationService authService, ClaimsPrincipal user, CancellationToken cancellationToken)
+    {
+        var authResult = await authService.AuthorizeAsync(user, boardId, "IsBoardMember");
+        if (!authResult.Succeeded)
+        {
+            return TypedResults.Forbid();
+        }
+
+        var result = await columnService.MoveAsync(boardId, columnId, request, cancellationToken);
         if (result.IsFailure)
         {
             return result.Error.ToTypedResult();

@@ -15,4 +15,7 @@ public static class ColumnErrors
 
     public static Error HasCards(int columnId) =>
         Error.Conflict("Column.HasCards", $"Column with ID '{columnId}' cannot be deleted because it contains cards. Please move or delete the cards first.");
+
+    public static Error MoveConflict(int columnId) =>
+        Error.Conflict("Column.MoveConflict", $"Column {columnId} was moved since you last saw it. Refresh and try again.");
 }
