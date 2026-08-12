@@ -1,9 +1,14 @@
 <section class="board-column">
   <header class="board-column-header">
     <div class="board-column-heading">
+      @if (!isEditing()) {
       <h2 class="board-column-title">{{ column().title }}</h2>
       <span class="board-column-count">{{ column().cards.length }}</span>
+      }
     </div>
+    @if (!isEditing()) {
+      <div class="board-column-header-actions">
+        <button type="button" class="btn-secondary btn-sm" (click)="onEditClick()">Edit</button>
     <button type="button"
             class="icon-delete-button"
             [disabled]="isDeleting()"
@@ -11,8 +16,36 @@
             (click)="onDeleteClick()">
       <span class="delete-icon" aria-hidden="true">&times;</span>
     </button>
+      </div>
+    }
   </header>
-  @if (column().description) {
+  @if (isEditing()) {
+    <form class="form board-column-edit-form" [formGroup]="editForm" (ngSubmit)="onEditSubmit()" novalidate>
+      <div class="form-field">
+        <input
+          type="text"
+          formControlName="title"
+          placeholder="Column title"
+          [class.has-error]="editForm.controls.title.invalid && editForm.controls.title.touched"
+        />
+        @if (editForm.controls.title.touched && editForm.controls.title.hasError('required')) {
+          <span class="field-error">Title is required.</span>
+        }
+      </div>
+      <div class="form-field">
+        <textarea formControlName="description" placeholder="Description (optional)"></textarea>
+      </div>
+
+      <app-error-message [message]="editErrorMessage()" />
+
+      <div class="form-actions">
+        <button type="button" class="btn-secondary btn-sm" [disabled]="isSubmittingEdit()" (click)="onEditCancel()">Cancel</button>
+        <button type="submit" class="btn-primary btn-sm" [disabled]="!editForm.valid || isSubmittingEdit()">
+          {{ isSubmittingEdit() ? 'Saving...' : 'Save' }}
+        </button>
+      </div>
+    </form>
+  } @else if (column().description) {
     <p class="board-column-description">{{ column().description }}</p>
   }
   <div class="board-column-cards" cdkDropList [cdkDropListData]="column().cards" (cdkDropListDropped)="onDropped($event)">

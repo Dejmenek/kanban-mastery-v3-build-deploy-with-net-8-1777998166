@@ -93,6 +93,10 @@
   padding: 0 var(--space-4) var(--space-4);
 }
 
+.board-column-edit-form {
+  padding: var(--space-3) var(--space-4) 0;
+}
+
 @media (max-width: 768px) {
   :host {
     flex: 1 1 auto;

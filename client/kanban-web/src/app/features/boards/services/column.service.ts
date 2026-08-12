@@ -16,4 +16,9 @@ export class ColumnService {
     return this.api
       .delete<void>(`/api/boards/${boardId}/columns/${columnId}`);
   }
+
+  update(boardId: number, columnId: number, request: UpdateColumnRequest): Observable<ColumnResponse> {
+    return this.api
+      .put<UpdateColumnRequest, ColumnResponse>(`/api/boards/${boardId}/columns/${columnId}`, request);
+  }
 }
