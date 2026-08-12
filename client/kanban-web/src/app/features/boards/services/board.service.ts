@@ -21,6 +21,7 @@ import {
   CreateColumnRequest,
   MoveCardRequest,
   UpdateBoardRequest,
+  UpdateColumnRequest,
 } from '../models/board.models';
 import { ColumnService } from './column.service';
 
@@ -187,6 +188,16 @@ export class BoardService {
     );
   }
 
+  updateColumn(columnId: number, request: UpdateColumnRequest): Observable<ColumnResponse> {
+    const boardId = this.requireBoardId();
+    return this.columnService.update(boardId, columnId, request).pipe(
+      tap((updated) =>
+        this.columns.update((cols) =>
+          cols.map((c) => (c.id === columnId ? { ...c, title: updated.title, description: updated.description } : c)),
+        ),
+      ),
+    );
+  }
   moveCard(event: CdkDragDrop<CardResponse[]>): void {
     const card = event.item.data as CardResponse;
     const expectedColumnId = this.findColumnIdForCards(event.previousContainer.data);

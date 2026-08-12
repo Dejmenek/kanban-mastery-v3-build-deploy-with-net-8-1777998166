@@ -26,6 +26,10 @@ export interface CreateColumnRequest {
   description: string | null;
 }
 
+export interface UpdateColumnRequest {
+  title: string;
+  description: string | null;
+}
 export interface CardResponse {
   id: number;
   title: string;

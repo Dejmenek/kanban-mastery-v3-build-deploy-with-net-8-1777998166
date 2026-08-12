@@ -26,9 +26,16 @@ export class BoardColumn {
     title: new FormControl('', Validators.required),
     description: new FormControl(''),
   });
+  protected editForm = new FormGroup({
+    title: new FormControl('', Validators.required),
+    description: new FormControl(''),
+  });
   protected errorMessage = signal<string | null>(null);
   protected isSubmitting = signal(false);
   protected isAdding = signal(false);
+  protected isEditing = signal(false);
+  protected editErrorMessage = signal<string | null>(null);
+  protected isSubmittingEdit = signal(false);
   protected isDeleting = computed(() => this.boardService.deletingColumnIds().has(this.column().id));
 
 
@@ -76,5 +83,43 @@ export class BoardColumn {
         this.boardService.deleteColumn(this.column().id).subscribe();
       }
     });
+  }
+
+  protected onEditClick() {
+    this.editForm.setValue({
+      title: this.column().title,
+      description: this.column().description ?? '',
+    });
+    this.editErrorMessage.set(null);
+    this.isEditing.set(true);
+  }
+
+  protected onEditSubmit() {
+    if (this.editForm.invalid) {
+      this.editForm.markAllAsTouched();
+      return;
+    }
+
+    this.editErrorMessage.set(null);
+    this.isSubmittingEdit.set(true);
+
+    const request: UpdateColumnRequest = {
+      title: this.editForm.value.title!,
+      description: this.editForm.value.description || null,
+    };
+
+    this.boardService
+      .updateColumn(this.column().id, request)
+      .pipe(finalize(() => this.isSubmittingEdit.set(false)))
+      .subscribe({
+        next: () => this.isEditing.set(false),
+        error: (err: HttpErrorResponse) => this.editErrorMessage.set(extractErrorMessage(err, 'Could not update column. Please try again.')),
+    });
+  }
+
+  protected onEditCancel() {
+    this.editForm.reset();
+    this.editErrorMessage.set(null);
+    this.isEditing.set(false);
   }
 }
