@@ -1,4 +1,4 @@
-import { Component, inject, input, signal } from '@angular/core';
+import { Component, computed, inject, input, signal } from '@angular/core';
 import { BoardCard } from '../board-card/board-card';
 import { CardResponse, ColumnResponse, CreateCardRequest } from '../../models/board.models';
 import { CdkDragDrop, CdkDropList } from '@angular/cdk/drag-drop';
@@ -8,6 +8,8 @@ import { finalize } from 'rxjs';
 import { BoardService } from '../../services/board.service';
 import { extractErrorMessage } from '../../../../shared/utils/extract-error-message';
 import { ErrorMessage } from '../../../../shared/components/error-message/error-message';
+import { Dialog } from '@angular/cdk/dialog';
+import { ConfirmModal } from '../../../../shared/components/confirm-modal/confirm-modal';
 
 @Component({
   selector: 'app-board-column',
@@ -17,6 +19,7 @@ import { ErrorMessage } from '../../../../shared/components/error-message/error-
 })
 export class BoardColumn {
   column = input.required<ColumnResponse>();
+  private dialog = inject(Dialog);
   private boardService = inject(BoardService);
 
   protected addCardForm = new FormGroup({
@@ -26,6 +29,8 @@ export class BoardColumn {
   protected errorMessage = signal<string | null>(null);
   protected isSubmitting = signal(false);
   protected isAdding = signal(false);
+  protected isDeleting = computed(() => this.boardService.deletingColumnIds().has(this.column().id));
+
 
   protected onDropped(event: CdkDragDrop<CardResponse[]>): void {
     this.boardService.moveCard(event);
@@ -62,5 +67,14 @@ export class BoardColumn {
     this.addCardForm.reset();
     this.errorMessage.set(null);
     this.isAdding.set(false);
+  }
+
+  protected onDeleteClick() {
+    const dialogRef = this.dialog.open<boolean>(ConfirmModal);
+    dialogRef.closed.subscribe((isConfirmed) => {
+      if (isConfirmed) {
+        this.boardService.deleteColumn(this.column().id).subscribe();
+      }
+    });
   }
 }
