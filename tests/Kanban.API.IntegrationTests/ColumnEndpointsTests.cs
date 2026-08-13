@@ -245,4 +245,67 @@ public class ColumnEndpointsTests(IntegrationTestWebAppFactory<Program> factory)
         // Assert
         Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
     }
+
+    [Fact]
+    public async Task MoveColumn_AsMember_ReturnsOkAndUpdatesPosition()
+    {
+        // Arrange
+        var owner = await CreateUserAsync("owner@example.com", "Test123!");
+        var board = await UseDbContextAsync(context => BoardTestHelper.SeedBoardAsync(context, owner.Id));
+        var (first, second) = await UseDbContextAsync(async context =>
+        {
+            var c1 = await BoardTestHelper.SeedColumnAsync(context, new Column { BoardId = board.Id, Title = "Col 1", Position = 1 });
+            var c2 = await BoardTestHelper.SeedColumnAsync(context, new Column { BoardId = board.Id, Title = "Col 2", Position = 2 });
+            return (c1, c2);
+        });
+
+        var memberEmail = "member@example.com";
+        var memberPassword = "Test123!";
+        var member = await CreateUserAsync(memberEmail, memberPassword);
+        await UseDbContextAsync(context => BoardTestHelper.SeedBoardMemberAsync(
+            context, new BoardMember { BoardId = board.Id, MemberId = member.Id, Role = Role.Member }));
+        await AuthenticateAsAsync(memberEmail, memberPassword);
+
+        var request = new MoveColumnRequest(TargetPosition: 2, ExpectedPosition: 1);
+
+        // Act
+        var response = await Client.PutAsJsonAsync(
+            $"/api/boards/{board.Id}/columns/{first.Id}/position",
+            request,
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var body = await response.Content.ReadFromJsonAsync<MoveColumnResponse>(TestContext.Current.CancellationToken);
+        Assert.NotNull(body);
+        Assert.Equal(first.Id, body.ColumnId);
+        Assert.Equal(2, body.Position);
+    }
+
+    [Fact]
+    public async Task MoveColumn_AsNonMember_ReturnsForbidden()
+    {
+        // Arrange
+        var owner = await CreateUserAndAuthenticateAsync("owner@example.com", "Test123!");
+        var board = await UseDbContextAsync(context => BoardTestHelper.SeedBoardAsync(context, owner.Id));
+        var column = await UseDbContextAsync(context =>
+            BoardTestHelper.SeedColumnAsync(context, new Column { BoardId = board.Id, Title = "Original", Position = 1 }));
+
+        var nonMemberEmail = "nonmember@example.com";
+        var nonMemberPassword = "Test123!";
+        await CreateUserAsync(nonMemberEmail, nonMemberPassword);
+        await AuthenticateAsAsync(nonMemberEmail, nonMemberPassword);
+
+        var request = new MoveColumnRequest(TargetPosition: 1, ExpectedPosition: 1);
+
+        // Act
+        var response = await Client.PutAsJsonAsync(
+            $"/api/boards/{board.Id}/columns/{column.Id}/position",
+            request,
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
 }
