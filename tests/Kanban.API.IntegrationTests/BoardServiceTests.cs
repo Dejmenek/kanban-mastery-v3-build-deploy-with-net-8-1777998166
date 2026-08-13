@@ -215,4 +215,55 @@ public class BoardServiceTests(IntegrationTestWebAppFactory<Program> factory)
         var card = Assert.Single(result.Value.Columns.Single().Cards);
         Assert.Null(card.AssignedTo);
     }
+
+    [Fact]
+    public async Task GetByIdAsync_WithNonExistentBoard_ReturnsNotFoundFailure()
+    {
+        // Arrange
+        const int nonExistentBoardId = 999;
+        var user = await CreateUserAsync("user@example.com", "Test123!");
+
+        // Act
+        var result = await UseBoardServiceAsync(service =>
+            service.GetByIdAsync(nonExistentBoardId, user.Id, TestContext.Current.CancellationToken));
+
+        // Assert
+        Assert.True(result.IsFailure);
+        Assert.Equal(BoardErrors.NotFound(nonExistentBoardId), result.Error);
+    }
+
+    [Fact]
+    public async Task GetAllForUserAsync_ReturnsOnlyBoardsUserIsMemberOrOwnerOf()
+    {
+        // Arrange
+        var user = await CreateUserAsync("user@example.com", "Test123!");
+        var otherOwner = await CreateUserAsync("otherowner@example.com", "Test123!");
+
+        var ownedBoard = await UseDbContextAsync(context =>
+            BoardTestHelper.SeedBoardAsync(context, user.Id, new Board { Name = "Owned Board" }));
+
+        var memberBoard = await UseDbContextAsync(context =>
+            BoardTestHelper.SeedBoardAsync(context, otherOwner.Id, new Board { Name = "Member Board" }));
+        await UseDbContextAsync(context => BoardTestHelper.SeedBoardMemberAsync(
+            context, new BoardMember { BoardId = memberBoard.Id, MemberId = user.Id, Role = Role.Member }));
+
+        var unrelatedBoard = await UseDbContextAsync(context =>
+            BoardTestHelper.SeedBoardAsync(context, otherOwner.Id, new Board { Name = "Unrelated Board" }));
+
+        // Act
+        var result = await UseBoardServiceAsync(service =>
+            service.GetAllForUserAsync(user.Id, TestContext.Current.CancellationToken));
+
+        // Assert
+        Assert.True(result.IsSuccess);
+        Assert.Equal(2, result.Value.Count);
+
+        var returnedOwnedBoard = result.Value.Single(b => b.Id == ownedBoard.Id);
+        Assert.Equal(nameof(Role.Owner), returnedOwnedBoard.UserRole);
+
+        var returnedMemberBoard = result.Value.Single(b => b.Id == memberBoard.Id);
+        Assert.Equal(nameof(Role.Member), returnedMemberBoard.UserRole);
+
+        Assert.DoesNotContain(result.Value, b => b.Id == unrelatedBoard.Id);
+    }
 }
