@@ -200,6 +200,27 @@ public class BoardEndpointsTests(IntegrationTestWebAppFactory<Program> factory) 
     }
 
     [Fact]
+    public async Task UpdateBoard_AsNonMember_ReturnsForbidden()
+    {
+        // Arrange
+        var owner = await CreateUserAndAuthenticateAsync("owner@example.com", "Test123!");
+        var board = await UseDbContextAsync(context => BoardTestHelper.SeedBoardAsync(context, owner.Id));
+
+        var nonMemberEmail = "nonmember@example.com";
+        var nonMemberPassword = "Test123!";
+        await CreateUserAsync(nonMemberEmail, nonMemberPassword);
+
+        await AuthenticateAsAsync(nonMemberEmail, nonMemberPassword);
+
+        // Act
+        var response = await Client.PutAsJsonAsync(
+            $"/api/boards/{board.Id}", new UpdateBoardRequest("Hacked Name", null), TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
     public async Task DeleteBoard_AsOwner_ReturnsNoContent()
     {
         // Arrange
@@ -227,6 +248,26 @@ public class BoardEndpointsTests(IntegrationTestWebAppFactory<Program> factory) 
             context, new BoardMember { BoardId = board.Id, MemberId = member.Id, Role = Role.Member }));
 
         await AuthenticateAsAsync(memberEmail, memberPassword);
+
+        // Act
+        var response = await Client.DeleteAsync($"/api/boards/{board.Id}", TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task DeleteBoard_AsNonMember_ReturnsForbidden()
+    {
+        // Arrange
+        var owner = await CreateUserAndAuthenticateAsync("owner@example.com", "Test123!");
+        var board = await UseDbContextAsync(context => BoardTestHelper.SeedBoardAsync(context, owner.Id));
+
+        var nonMemberEmail = "nonmember@example.com";
+        var nonMemberPassword = "Test123!";
+        await CreateUserAsync(nonMemberEmail, nonMemberPassword);
+
+        await AuthenticateAsAsync(nonMemberEmail, nonMemberPassword);
 
         // Act
         var response = await Client.DeleteAsync($"/api/boards/{board.Id}", TestContext.Current.CancellationToken);
