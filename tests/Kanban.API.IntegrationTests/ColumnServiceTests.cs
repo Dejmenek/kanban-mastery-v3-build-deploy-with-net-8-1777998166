@@ -491,20 +491,31 @@ public class ColumnServiceTests(IntegrationTestWebAppFactory<Program> factory)
         // Arrange
         var owner = await CreateUserAsync("owner@example.com", "Test123!");
         var board = await UseDbContextAsync(context => BoardTestHelper.SeedBoardAsync(context, owner.Id));
+        var (first, second) = await UseDbContextAsync(async context =>
+        {
+            var c1 = await BoardTestHelper.SeedColumnAsync(context, new Column { BoardId = board.Id, Title = "Col 1", Position = 1 });
+            var c2 = await BoardTestHelper.SeedColumnAsync(context, new Column { BoardId = board.Id, Title = "Col 2", Position = 2 });
+            return (c1, c2);
+        });
 
         // Act
         var result = await UseDbContextAsync(context =>
         {
             var service = new ColumnService(context, new AlwaysExhaustedRetryExecutor());
-            return service.CreateAsync(board.Id, new CreateColumnRequest("New", null, null), TestContext.Current.CancellationToken);
+            return service.CreateAsync(board.Id, new CreateColumnRequest("New", null, 1), TestContext.Current.CancellationToken);
         });
 
         // Assert
         Assert.True(result.IsFailure);
         Assert.Equal(ColumnErrors.PositionConflict(board.Id), result.Error);
 
-        var columnCount = await UseDbContextAsync(context => context.Columns.CountAsync(c => c.BoardId == board.Id, TestContext.Current.CancellationToken));
-        Assert.Equal(0, columnCount);
+        var positionsById = await UseDbContextAsync(context => context.Columns
+            .Where(c => c.BoardId == board.Id)
+            .ToDictionaryAsync(c => c.Id, c => c.Position, TestContext.Current.CancellationToken));
+
+        Assert.Equal(2, positionsById.Count);
+        Assert.Equal(1, positionsById[first.Id]);
+        Assert.Equal(2, positionsById[second.Id]);
     }
 
     [Fact]
