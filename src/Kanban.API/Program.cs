@@ -45,15 +45,30 @@ builder.Services.AddAuthorization(options =>
         policy.Requirements.Add(new IsBoardMemberRequirement()));
 });
 
-builder.Services.AddCors(options =>
+if (builder.Environment.IsDevelopment())
 {
-    options.AddPolicy("AngularClient", policy =>
+    builder.Services.AddCors(options =>
     {
-        policy.WithOrigins("http://localhost:59125", "https://localhost:59125")
-              .AllowAnyHeader()
-              .AllowAnyMethod();
+        options.AddPolicy("AllowAllOrigins",
+            policyBuilder => policyBuilder.AllowAnyHeader()
+                .AllowAnyMethod()
+                .AllowAnyOrigin()
+                .SetIsOriginAllowed(_ => true)
+        );
     });
-});
+}
+else
+{
+    builder.Services.AddCors(options =>
+    {
+        options.AddPolicy("ProdPolicy",
+            policyBuilder => policyBuilder.WithOrigins("https://your-production-domain.com")
+                .AllowAnyHeader()
+                .AllowAnyMethod()
+                .SetPreflightMaxAge(TimeSpan.FromMinutes(10))
+        );
+    });
+}
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
@@ -95,7 +110,15 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-app.UseCors("AngularClient");
+
+if (app.Environment.IsDevelopment())
+{
+    app.UseCors("AllowAllOrigins");
+}
+else
+{
+    app.UseCors("ProdPolicy");
+}
 
 app.UseAuthentication();
 app.UseAuthorization();
