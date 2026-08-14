@@ -50,6 +50,8 @@ jobs:
         run: dotnet tool install --global dotnet-ef --version 8.*
 
       - name: Run EF Core Migrations
+        env:
+          ASPNETCORE_ENVIRONMENT: Production
         run: |
           dotnet ef database update \
            --project ${{ env.PROJECT_PATH }} \
