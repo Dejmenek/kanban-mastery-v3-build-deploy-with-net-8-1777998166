@@ -3,7 +3,6 @@ using Kanban.API.Data;
 using Kanban.API.DTOs.Boards.Cards;
 using Kanban.API.Errors;
 using Kanban.API.Models;
-using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 
 namespace Kanban.API.Services;
@@ -11,6 +10,7 @@ namespace Kanban.API.Services;
 public class CardService(ApplicationDbContext context, IRetryExecutor retryExecutor) : ICardService
 {
     private const int MaxAttempts = 3;
+    private static readonly string[] PositionIndexScopeHints = ["Cards.ColumnId, Cards.Position", "IX_Cards_ColumnId_Position"];
 
     public async Task<Result<CardResponse>> AssignCardToUserAsync(
         int cardId, int boardId, AssignCardRequest request, CancellationToken cancellationToken)
@@ -123,7 +123,7 @@ public class CardService(ApplicationDbContext context, IRetryExecutor retryExecu
         return await retryExecutor.ExecuteAsync(
             maxAttempts: MaxAttempts,
             operation: () => TryMoveAsync(boardId, cardId, request, cancellationToken),
-            isRetryable: IsRetryableConflict,
+            isRetryable: ex => DbConflictClassifier.IsRetryableConflict(ex, PositionIndexScopeHints),
             onExhausted: () => Result.Failure<MoveCardResponse>(CardErrors.PositionConflict(request.TargetColumnId)),
             cancellationToken: cancellationToken
         );
@@ -245,8 +245,4 @@ public class CardService(ApplicationDbContext context, IRetryExecutor retryExecu
         card.ColumnId = newColumnId;
         card.Position = targetPosition;
     }
-
-    private static bool IsRetryableConflict(DbUpdateException ex) =>
-        ex.InnerException is SqliteException sqliteEx &&
-        ((sqliteEx.SqliteErrorCode == 19 && sqliteEx.Message.Contains("Cards.ColumnId, Cards.Position")) || sqliteEx.SqliteErrorCode is 5 or 6);
 }

@@ -3,7 +3,6 @@ using Kanban.API.Data;
 using Kanban.API.DTOs.Boards.Columns;
 using Kanban.API.Errors;
 using Kanban.API.Models;
-using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 
 namespace Kanban.API.Services;
@@ -11,13 +10,14 @@ namespace Kanban.API.Services;
 public class ColumnService(ApplicationDbContext context, IRetryExecutor retryExecutor) : IColumnService
 {
     private const int MaxAttempts = 3;
+    private static readonly string[] PositionIndexScopeHints = ["Columns.BoardId, Columns.Position", "IX_Columns_BoardId_Position"];
 
     public async Task<Result<ColumnResponse>> CreateAsync(int boardId, CreateColumnRequest request, CancellationToken cancellationToken = default)
     {
         return await retryExecutor.ExecuteAsync(
             maxAttempts: MaxAttempts,
             operation: () => TryCreateAsync(boardId, request, cancellationToken),
-            isRetryable: IsRetryableConflict,
+            isRetryable: ex => DbConflictClassifier.IsRetryableConflict(ex, PositionIndexScopeHints),
             onExhausted: () => Result.Failure<ColumnResponse>(ColumnErrors.PositionConflict(boardId)),
             cancellationToken: cancellationToken
         );
@@ -84,7 +84,7 @@ public class ColumnService(ApplicationDbContext context, IRetryExecutor retryExe
 
             return Result.Success();
         }
-        catch (DbUpdateException ex) when (IsForeignKeyConstraintViolation(ex))
+        catch (DbUpdateException ex) when (DbConflictClassifier.IsForeignKeyViolation(ex))
         {
             return Result.Failure(ColumnErrors.HasCards(columnId));
         }
@@ -117,7 +117,7 @@ public class ColumnService(ApplicationDbContext context, IRetryExecutor retryExe
         return await retryExecutor.ExecuteAsync(
             maxAttempts: MaxAttempts,
             operation: () => TryMoveAsync(boardId, columnId, request, cancellationToken),
-            isRetryable: IsRetryableConflict,
+            isRetryable: ex => DbConflictClassifier.IsRetryableConflict(ex, PositionIndexScopeHints),
             onExhausted: () => Result.Failure<MoveColumnResponse>(ColumnErrors.PositionConflict(boardId)),
             cancellationToken: cancellationToken
         );
@@ -182,13 +182,6 @@ public class ColumnService(ApplicationDbContext context, IRetryExecutor retryExe
             .Select(c => new ColumnPositionResponse(c.Id, c.Position))
             .ToListAsync(cancellationToken);
     }
-
-    private static bool IsRetryableConflict(DbUpdateException ex) =>
-        ex.InnerException is SqliteException sqliteEx && sqliteEx.SqliteErrorCode == 19 &&
-        sqliteEx.Message.Contains("Columns.BoardId, Columns.Position");
-
-    private static bool IsForeignKeyConstraintViolation(DbUpdateException ex) =>
-        ex.InnerException is SqliteException sqliteEx && (sqliteEx.SqliteErrorCode == 19 || sqliteEx.SqliteExtendedErrorCode == 787);
 
     private async Task ShiftColumnsFromAsync(int boardId, int fromPosition, CancellationToken cancellationToken)
     {
