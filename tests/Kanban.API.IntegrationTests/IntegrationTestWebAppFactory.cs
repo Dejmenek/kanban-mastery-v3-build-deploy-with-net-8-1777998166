@@ -19,6 +19,7 @@ public class IntegrationTestWebAppFactory<TProgram> : WebApplicationFactory<TPro
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         base.ConfigureWebHost(builder);
+        builder.UseEnvironment("Testing");
         builder.ConfigureServices(services =>
         {
             var descriptor = services.SingleOrDefault(
