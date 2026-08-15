@@ -4,11 +4,19 @@ on:
   push:
     branches:
       - main
+    paths:
+      - 'src/Kanban.API/**'
+      - 'Kanban.sln'
+      - '.github/workflows/cd-backend.yml'
   workflow_dispatch:
 
 permissions:
   id-token: write
   contents: read
+
+concurrency:
+  group: cd-backend-${{ github.ref }}
+  cancel-in-progress: false
 
 env:
   PROJECT_PATH: 'src/Kanban.API/Kanban.API.csproj'
