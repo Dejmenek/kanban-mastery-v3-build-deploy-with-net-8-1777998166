@@ -12,12 +12,6 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
 {
     var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-    if (builder.Environment.IsDevelopment())
-    {
-        options.UseSqlite(connectionString);
-    }
-    else
-    {
         options.UseSqlServer(connectionString, sqlOptions =>
         {
             sqlOptions.EnableRetryOnFailure(
@@ -26,7 +20,6 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
                 errorNumbersToAdd: null
             );
         });
-    }
 });
 builder.Services.AddIdentityApiEndpoints<ApplicationUser>(options =>
 {
