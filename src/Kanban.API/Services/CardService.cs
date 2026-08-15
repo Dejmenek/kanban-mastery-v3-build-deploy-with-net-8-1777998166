@@ -147,19 +147,23 @@ public class CardService(ApplicationDbContext context, IRetryExecutor retryExecu
 
         var sourceColumnId = card.ColumnId;
 
-        await using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
-
-        if (isMovingColumns)
+        var strategy = context.Database.CreateExecutionStrategy();
+        await strategy.ExecuteAsync(async () =>
         {
-            await MoveToAnotherColumnAsync(card, request.TargetColumnId, request.TargetPosition, cancellationToken);
-        }
-        else
-        {
-            await ReorderWithinColumnAsync(card, request.TargetPosition, cancellationToken);
-        }
+            await using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
 
-        await context.SaveChangesAsync(cancellationToken);
-        await transaction.CommitAsync(cancellationToken);
+            if (isMovingColumns)
+            {
+                await MoveToAnotherColumnAsync(card, request.TargetColumnId, request.TargetPosition, cancellationToken);
+            }
+            else
+            {
+                await ReorderWithinColumnAsync(card, request.TargetPosition, cancellationToken);
+            }
+
+            await context.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+        });
 
         var affectedColumnIds = isMovingColumns
             ? new[] { sourceColumnId, card.ColumnId }

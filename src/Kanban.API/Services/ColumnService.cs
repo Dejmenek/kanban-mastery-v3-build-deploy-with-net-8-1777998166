@@ -131,12 +131,16 @@ public class ColumnService(ApplicationDbContext context, IRetryExecutor retryExe
         if (column.Position != request.ExpectedPosition)
             return Result.Failure<MoveColumnResponse>(ColumnErrors.MoveConflict(columnId));
 
-        await using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
+        var strategy = context.Database.CreateExecutionStrategy();
+        await strategy.ExecuteAsync(async () =>
+        {
+            await using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
 
-        await ReorderAsync(column, request.TargetPosition, cancellationToken);
+            await ReorderAsync(column, request.TargetPosition, cancellationToken);
 
-        await context.SaveChangesAsync(cancellationToken);
-        await transaction.CommitAsync(cancellationToken);
+            await context.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+        });
 
         var affectedColumns = await GetAffectedColumnsAsync(boardId, cancellationToken);
 
