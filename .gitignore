@@ -483,6 +483,7 @@ $RECYCLE.BIN/
 
 # Compiled output
 /dist
+client/kanban-web/dist/
 /tmp
 /out-tsc
 /bazel-out
