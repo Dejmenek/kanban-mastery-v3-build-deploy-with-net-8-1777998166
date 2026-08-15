@@ -1,59 +1,84 @@
-# GenericTemplate
+# Kanban
 
-**[Insert a brief description of your application here. Describe its purpose, functionality, etc.]**
+A full-stack Kanban board application built with **ASP.NET Core 8** (Web API) and **Angular 22**. It lets teams organize work into boards, columns, and cards, invite members, and track ownership — with drag-and-drop reordering and role-based access control baked into the API.
 
 ## 🌐 Demo
 
-[Your Demo Link Here](http://replace-with-your-link.com)
+[Live Demo](https://red-bay-0ce75de03.7.azurestaticapps.net)
 
-**Demo Credentials (If applicable):**
-- **Username:** ReplaceThisWithUsername
-- **Password:** ReplaceThisWithPassword
+You can register your own account directly on the demo.
 
 ## 📖 About this Software
 
-Provide a comprehensive explanation of your software here. Dive into its core functionalities, why you opted to create it, its target users, and its value proposition.
+This project is a Trello-style Kanban board built to explore production-grade patterns for a .NET + Angular stack.
 
-### Features:
+Each board has an **owner** and a list of **members**. Owners manage the board and its membership; members can create and reorganize columns and cards. Boards contain columns, columns contain cards, and cards can be assigned to a member and moved between columns.
 
-1. **Feature 1:** Brief description.
-2. **Feature 2:** Brief description.
-3. **...:** Continue listing out the core features of your application.
+### Features
+
+- **Authentication** — register/login via ASP.NET Core Identity API endpoints.
+- **Boards** — create, view, rename, and delete boards you own or belong to.
+- **Columns** — add, rename, delete, and reorder columns within a board.
+- **Cards** — create, edit, delete, assign to a board member, and drag-and-drop reorder/move between columns.
+- **Board membership** — owners can add members and search through the member list.
+- **Role-based authorization** — custom `IsBoardOwner` / `IsBoardMember` policies guard every board, column, card, and member endpoint.
+- **Resilient data access** — SQL Server with EF Core retry-on-failure and a conflict-aware retry executor for concurrent position updates.
 
 ## 🖼️ Screenshots
 
-To give you a visual overview of the application, here are some screenshots:
+_Add screenshots of the dashboard and board view here._
 
-### [Feature or Page Name]
-![Description of Image](http://link-to-your-image.com/image1.png)
+## 🛠️ Tech Stack
 
-### [Another Feature or Page Name]
-![Description of Image](http://link-to-your-image.com/image2.png)
+- **Backend:** ASP.NET Core 8 (Minimal APIs), Entity Framework Core, ASP.NET Core Identity, SQL Server
+- **Frontend:** Angular 22, Angular CDK
+- **Testing:** xUnit, Testcontainers (SQL Server) for integration tests, EF Core InMemory for unit tests
 
-Add more screenshots as needed. Ensure to replace placeholders with appropriate links and descriptions.
+## 🚀 Running Locally
 
-## ⚠️ Warning
+### Prerequisites
 
-**Changing the repository name is NOT allowed.** Renaming this repository can cause issues with the peer review feature integrated into this template. 
+- [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
+- [Node.js](https://nodejs.org/) 20+ and npm
+- [Angular CLI](https://angular.dev/tools/cli) (`npm install -g @angular/cli`)
+- [SQL Server LocalDB](https://learn.microsoft.com/sql/database-engine/configure-windows/sql-server-express-localdb) (included with Visual Studio, or installable via the SQL Server Express installer) — used by the API in development
+- [Docker](https://www.docker.com/) — required to run the backend **integration** tests, which spin up a real SQL Server instance via Testcontainers
 
-If you're planning to present this project to potential employers or external parties:
+### Backend (Kanban.API)
 
-1. Ensure that all functionalities work as expected.
-2. **Remove this warning section** to maintain a clean and professional look.
+1. Run the API:
+   ```bash
+   dotnet run --project src/Kanban.API
+   ```
+2. On startup (in the Development environment) the API automatically creates the LocalDB database, applies EF Core migrations, and seeds it with sample boards/users — no manual migration step needed. Seeded users (`alice@example.com`, `bob@example.com`, `carol@example.com`) all use the password `Passw0rd!`, handy for logging into the local frontend.
+3. The API starts at `https://localhost:7234` (and `http://localhost:5059`). Swagger UI is available at `/swagger`.
 
-## ✅ Best Practices to Follow
+### Frontend (kanban-web)
 
-To ensure high-quality projects, we recommend adhering to the following best practices:
+1. Install dependencies:
+   ```bash
+   cd client/kanban-web
+   npm install
+   ```
+2. Start the dev server:
+   ```bash
+   ng serve --host=127.0.0.1
+   ```
+3. The app runs at `http://127.0.0.1:4200` and talks to the API at `https://localhost:7234` (see `src/environments/environment.development.ts`). Make sure the backend is running first.
 
-1. **Gitflow:** Always use pull requests (PRs) for introducing new features or changes. This helps in maintaining a clean commit history and enables peer reviews.
-2. **Commit Formatting:** Follow a commit convention such as Git convention or [Conventional Commits](https://www.conventionalcommits.org/). It makes the commit history readable and easy to understand.
-3. **Test Coverage:** Aim for a minimum test coverage of 80-90%. This ensures that the majority of your code is tested, reducing potential bugs and regressions.
-4. **Comprehensive README:** A well-documented README provides clarity about the project's purpose, usage, and maintenance.
-5. **Live Demo:** Always provide a live demo with login credentials (if applicable). It offers a hands-on experience of your application to users or potential employers.
-6. **Continuous Integration (CI):** Implement CI to automatically build and test your project. This ensures that your code is always in a deployable state.
-7. **Continuous Deployment (CD):** While CI is a must, having CD is a nice-to-have feature. It automates the deployment process, ensuring that the latest changes are instantly accessible to users.
-8. **Clean Code:** Avoid clutter or "junk" in your code. Ensure that your codebase is organized, commented when necessary, and follows established coding standards.
+### Running Backend Tests
 
----
+- **Unit tests** (no external dependencies, uses EF Core InMemory):
+  ```bash
+  dotnet test tests/Kanban.API.UnitTests
+  ```
+- **Integration tests** (requires Docker running, spins up a SQL Server container via Testcontainers):
+  ```bash
+  dotnet test tests/Kanban.API.IntegrationTests
+  ```
 
-Happy coding! 💻
+## 📝 TODO
+
+- **Real-time collaboration** — push board/column/card changes to connected clients (e.g. via SignalR) instead of requiring a refresh.
+- **Rate limiting** — protect the API from abuse using ASP.NET Core's built-in rate limiting middleware.
+- **API versioning** — introduce versioned routes (e.g. `/api/v1/...`) so the API can evolve without breaking existing clients.
