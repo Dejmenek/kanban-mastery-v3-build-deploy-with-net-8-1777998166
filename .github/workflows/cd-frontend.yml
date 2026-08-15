@@ -45,5 +45,5 @@ jobs:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: 'upload'
           skip_app_build: true
-          app_location: 'client/kanban-web'
-          output_location: 'dist/kanban-web/browser'
+          app_location: 'client/kanban-web/dist/kanban-web/browser'
+          output_location: ''
