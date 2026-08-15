@@ -4,26 +4,6 @@ namespace Kanban.API.UnitTests;
 
 public class DbErrorClassifierTests
 {
-    [Fact]
-    public void IsUniqueConstraintViolation_Sqlite_WithUniqueExtendedCode_ReturnsTrue()
-    {
-        // Act
-        var result = DbErrorClassifier.IsUniqueConstraintViolation(DbProvider.Sqlite, primaryCode: 19, extendedCode: 2067, message: "");
-
-        // Assert
-        Assert.True(result);
-    }
-
-    [Fact]
-    public void IsUniqueConstraintViolation_Sqlite_WithForeignKeyExtendedCode_ReturnsFalse()
-    {
-        // Act
-        var result = DbErrorClassifier.IsUniqueConstraintViolation(DbProvider.Sqlite, primaryCode: 19, extendedCode: 787, message: "");
-
-        // Assert
-        Assert.False(result);
-    }
-
     [Theory]
     [InlineData(2627)]
     [InlineData(2601)]
@@ -51,8 +31,8 @@ public class DbErrorClassifierTests
     {
         // Act
         var result = DbErrorClassifier.IsUniqueConstraintViolation(
-            DbProvider.Sqlite, primaryCode: 19, extendedCode: 2067,
-            message: "UNIQUE constraint failed: Cards.ColumnId, Cards.Position",
+            DbProvider.SqlServer, primaryCode: 2627, extendedCode: 2627,
+            message: "Violation of UNIQUE KEY constraint. Cannot insert duplicate key in object 'dbo.Cards'. The duplicate key value is (Cards.ColumnId, Cards.Position).",
             scopeHints: ["Cards.ColumnId, Cards.Position"]);
 
         // Assert
@@ -64,8 +44,8 @@ public class DbErrorClassifierTests
     {
         // Act
         var result = DbErrorClassifier.IsUniqueConstraintViolation(
-            DbProvider.Sqlite, primaryCode: 19, extendedCode: 2067,
-            message: "UNIQUE constraint failed: Users.Email",
+            DbProvider.SqlServer, primaryCode: 2627, extendedCode: 2627,
+            message: "Violation of UNIQUE KEY constraint. Cannot insert duplicate key in object 'dbo.Users'. The duplicate key value is (Users.Email).",
             scopeHints: ["Cards.ColumnId, Cards.Position"]);
 
         // Assert
@@ -77,7 +57,7 @@ public class DbErrorClassifierTests
     {
         // Act
         var result = DbErrorClassifier.IsUniqueConstraintViolation(
-            DbProvider.Sqlite, primaryCode: 19, extendedCode: 2067, message: "unrelated message");
+            DbProvider.SqlServer, primaryCode: 2627, extendedCode: 2627, message: "unrelated message");
 
         // Assert
         Assert.True(result);
@@ -87,29 +67,7 @@ public class DbErrorClassifierTests
     public void IsUniqueConstraintViolation_UnknownProvider_ReturnsFalse()
     {
         // Act
-        var result = DbErrorClassifier.IsUniqueConstraintViolation(DbProvider.Unknown, primaryCode: 2067, extendedCode: 2067, message: "");
-
-        // Assert
-        Assert.False(result);
-    }
-
-    [Theory]
-    [InlineData(787)]
-    [InlineData(1811)]
-    public void IsForeignKeyViolation_Sqlite_WithForeignKeyExtendedCode_ReturnsTrue(int extendedCode)
-    {
-        // Act
-        var result = DbErrorClassifier.IsForeignKeyViolation(DbProvider.Sqlite, primaryCode: 19, extendedCode);
-
-        // Assert
-        Assert.True(result);
-    }
-
-    [Fact]
-    public void IsForeignKeyViolation_Sqlite_WithUniqueExtendedCode_ReturnsFalse()
-    {
-        // Act
-        var result = DbErrorClassifier.IsForeignKeyViolation(DbProvider.Sqlite, primaryCode: 19, extendedCode: 2067);
+        var result = DbErrorClassifier.IsUniqueConstraintViolation(DbProvider.Unknown, primaryCode: 2627, extendedCode: 2627, message: "");
 
         // Assert
         Assert.False(result);
@@ -130,28 +88,6 @@ public class DbErrorClassifierTests
     {
         // Act
         var result = DbErrorClassifier.IsForeignKeyViolation(DbProvider.SqlServer, primaryCode: 2627, extendedCode: 2627);
-
-        // Assert
-        Assert.False(result);
-    }
-
-    [Theory]
-    [InlineData(5)]
-    [InlineData(6)]
-    public void IsTransient_Sqlite_BusyOrLocked_ReturnsTrue(int primaryCode)
-    {
-        // Act
-        var result = DbErrorClassifier.IsTransient(DbProvider.Sqlite, primaryCode);
-
-        // Assert
-        Assert.True(result);
-    }
-
-    [Fact]
-    public void IsTransient_Sqlite_ConstraintViolationCode_ReturnsFalse()
-    {
-        // Act
-        var result = DbErrorClassifier.IsTransient(DbProvider.Sqlite, primaryCode: 19);
 
         // Assert
         Assert.False(result);

@@ -11,7 +11,7 @@ public class DbUpdateRetryExecutorTests
     private static ApplicationDbContext CreateContext()
     {
         var options = new DbContextOptionsBuilder<ApplicationDbContext>()
-            .UseSqlite("Data Source=:memory:")
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options;
         return new ApplicationDbContext(options);
     }
