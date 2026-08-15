@@ -1,4 +1,3 @@
-using Microsoft.Data.Sqlite;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 
@@ -26,12 +25,6 @@ public static class DbConflictClassifier
     {
         switch (ex.InnerException)
         {
-            case SqliteException sqliteEx:
-                provider = DbProvider.Sqlite;
-                primaryCode = sqliteEx.SqliteErrorCode;
-                extendedCode = sqliteEx.SqliteExtendedErrorCode;
-                message = sqliteEx.Message;
-                return true;
             case SqlException sqlEx:
                 provider = DbProvider.SqlServer;
                 primaryCode = sqlEx.Number;
