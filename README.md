@@ -26,7 +26,9 @@ Each board has an **owner** and a list of **members**. Owners manage the board a
 
 ## 🖼️ Screenshots
 
-_Add screenshots of the dashboard and board view here._
+<img width="1868" height="894" alt="image" src="https://github.com/user-attachments/assets/9ab66f96-f16c-45d2-bc06-da2afe9d1dad" />
+<img width="1868" height="894" alt="image" src="https://github.com/user-attachments/assets/696caa48-96cf-4d86-a595-e7ef1d7a43ab" />
+
 
 ## 🛠️ Tech Stack
 
