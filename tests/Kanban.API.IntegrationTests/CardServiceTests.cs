@@ -2,8 +2,10 @@ using Kanban.API.Common;
 using Kanban.API.DTOs.Boards.Cards;
 using Kanban.API.Errors;
 using Kanban.API.Models;
+using Kanban.API.Notifiers;
 using Kanban.API.Services;
 using Microsoft.EntityFrameworkCore;
+using NSubstitute;
 
 namespace Kanban.API.IntegrationTests;
 
@@ -747,7 +749,7 @@ public class CardServiceTests(IntegrationTestWebAppFactory<Program> factory)
         // Act
         var result = await UseDbContextAsync(context =>
         {
-            var service = new CardService(context, new AlwaysExhaustedRetryExecutor());
+            var service = new CardService(context, new AlwaysExhaustedRetryExecutor(), Substitute.For<IBoardNotifier>());
             return service.MoveAsync(board.Id, card.Id, request, TestContext.Current.CancellationToken);
         });
 
