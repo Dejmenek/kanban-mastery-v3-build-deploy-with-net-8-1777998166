@@ -1,27 +1,30 @@
-import { Component, effect, inject, input, signal } from '@angular/core';
+import { Component, DestroyRef, effect, inject, input, signal } from '@angular/core';
 import { BoardColumn } from '../../components/board-column/board-column';
 import { BoardDetailsResponse, ColumnResponse, CreateColumnRequest, UpdateBoardRequest } from '../../models/board.models';
 import { BoardService } from '../../services/board.service';
 import { CdkDrag, CdkDragDrop, CdkDropList, CdkDropListGroup } from '@angular/cdk/drag-drop';
 import { Dialog, DialogModule } from '@angular/cdk/dialog';
 import { InviteModal } from '../../components/invite-modal/invite-modal';
+import { ConnectionStatus } from '../../components/connection-status/connection-status';
 import { Avatar } from '../../../../shared/components/avatar/avatar';
 import { FormGroup, FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { finalize } from 'rxjs';
 import { extractErrorMessage } from '../../../../shared/utils/extract-error-message';
 import { ErrorMessage } from '../../../../shared/components/error-message/error-message';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-board-detail',
   templateUrl: './board-detail.html',
   styleUrl: './board-detail.css',
-  imports: [BoardColumn, CdkDropListGroup, CdkDropList, CdkDrag, DialogModule, Avatar, ReactiveFormsModule, ErrorMessage],
+  imports: [BoardColumn, CdkDropListGroup, CdkDropList, CdkDrag, DialogModule, Avatar, ReactiveFormsModule, ErrorMessage, ConnectionStatus],
 })
 export class BoardDetail {
   board = input.required<BoardDetailsResponse>();
   protected boardService = inject(BoardService);
   private dialog = inject(Dialog);
+  private router = inject(Router);
 
   protected isEditingBoard = signal(false);
   protected isCreatingColumn = signal(false);
@@ -40,6 +43,10 @@ export class BoardDetail {
 
   constructor() {
     effect(() => this.boardService.setBoard(this.board()));
+    effect(() => {
+      if (this.boardService.boardDeleted()) this.router.navigate(['/dashboard']);
+    });
+    inject(DestroyRef).onDestroy(() => this.boardService.leaveRealtimeBoard());
   }
 
   openDialog() {

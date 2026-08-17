@@ -4,6 +4,7 @@
       <div>
         <div class="board-detail-title-row">
           <h1 class="board-detail-title">{{ boardService.boardName() }}</h1>
+          <app-connection-status />
           @if (boardService.isOwner()) {
             <button type="button" class="btn-secondary btn-sm" (click)="onEditBoard()">Edit</button>
           }
@@ -50,6 +51,13 @@
       }
     </div>
   </header>
+
+  @if (boardService.isResyncing()) {
+    <div class="board-detail-resync-banner" role="status" aria-live="polite">
+      <span class="board-detail-resync-bar" aria-hidden="true"></span>
+      Syncing latest changes…
+    </div>
+  }
 
   <app-error-message [message]="boardService.moveError()" />
   <app-error-message [message]="boardService.deleteCardError()" />

@@ -1,0 +1,44 @@
+:host {
+  display: inline-flex;
+}
+
+.connection-status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-weight: var(--font-weight-medium);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  color: var(--color-text-dim);
+}
+
+.connection-status-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  flex-shrink: 0;
+  background-color: var(--color-text-dim);
+}
+
+.connection-status-connected .connection-status-dot {
+  background-color: var(--color-success);
+}
+
+.connection-status-reconnecting,
+.connection-status-connecting {
+  color: var(--color-warning);
+}
+
+.connection-status-reconnecting .connection-status-dot,
+.connection-status-connecting .connection-status-dot {
+  background-color: var(--color-warning);
+}
+
+.connection-status-disconnected {
+  color: var(--color-error);
+}
+
+.connection-status-disconnected .connection-status-dot {
+  background-color: var(--color-error);
+}
