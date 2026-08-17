@@ -3,11 +3,12 @@ using Kanban.API.Data;
 using Kanban.API.DTOs.Boards;
 using Kanban.API.Errors;
 using Kanban.API.Models;
+using Kanban.API.Notifiers;
 using Microsoft.EntityFrameworkCore;
 
 namespace Kanban.API.Services;
 
-public class MemberService(ApplicationDbContext context) : IMemberService
+public class MemberService(ApplicationDbContext context, IBoardNotifier boardNotifier) : IMemberService
 {
     private const int MaxPageSize = 100;
     private const int MinQueryLength = 2;
@@ -53,7 +54,11 @@ public class MemberService(ApplicationDbContext context) : IMemberService
         context.BoardsMemberships.Add(newMember);
         await context.SaveChangesAsync(cancellationToken);
 
-        return new BoardMemberResponse(userToAdd.Id, userToAdd.UserName, userToAdd.Email, newMember.Role.ToString());
+        var boardMemberResponse = new BoardMemberResponse(userToAdd.Id, userToAdd.UserName, userToAdd.Email, newMember.Role.ToString());
+
+        await boardNotifier.MemberAdded(boardId, boardMemberResponse);
+
+        return boardMemberResponse;
     }
 
     public async Task<Result<CursorPagedResponse<BoardMemberResponse>>> GetAllAsync(

@@ -5,11 +5,12 @@ using Kanban.API.DTOs.Boards.Cards;
 using Kanban.API.DTOs.Boards.Columns;
 using Kanban.API.Errors;
 using Kanban.API.Models;
+using Kanban.API.Notifiers;
 using Microsoft.EntityFrameworkCore;
 
 namespace Kanban.API.Services;
 
-public class BoardService(ApplicationDbContext context) : IBoardService
+public class BoardService(ApplicationDbContext context, IBoardNotifier boardNotifier) : IBoardService
 {
     public async Task<Result<IReadOnlyList<BoardSummaryResponse>>> GetAllForUserAsync(
         string userId,
@@ -100,22 +101,32 @@ public class BoardService(ApplicationDbContext context) : IBoardService
         board.Description = request.Description;
         await context.SaveChangesAsync(cancellationToken);
 
-        return new BoardResponse(board.Id, board.Name, board.Description);
+        var updatedBoard = new BoardResponse(board.Id, board.Name, board.Description);
+
+        await boardNotifier.BoardUpdated(boardId, updatedBoard);
+
+        return updatedBoard;
     }
 
     public async Task<Result> DeleteAsync(int boardId, CancellationToken cancellationToken = default)
     {
-        await using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
+        var strategy = context.Database.CreateExecutionStrategy();
+        await strategy.ExecuteAsync(async () =>
+        {
+            await using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
 
-        await context.Cards
-            .Where(c => c.Column.BoardId == boardId)
-            .ExecuteDeleteAsync(cancellationToken);
+            await context.Cards
+                .Where(c => c.Column.BoardId == boardId)
+                .ExecuteDeleteAsync(cancellationToken);
 
-        await context.Boards
-            .Where(b => b.Id == boardId)
-            .ExecuteDeleteAsync(cancellationToken);
+            await context.Boards
+                .Where(b => b.Id == boardId)
+                .ExecuteDeleteAsync(cancellationToken);
 
-        await transaction.CommitAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+        });
+
+        await boardNotifier.BoardDeleted(boardId);
 
         return Result.Success();
     }

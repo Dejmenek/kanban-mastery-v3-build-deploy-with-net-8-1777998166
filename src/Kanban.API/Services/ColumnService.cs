@@ -3,11 +3,13 @@ using Kanban.API.Data;
 using Kanban.API.DTOs.Boards.Columns;
 using Kanban.API.Errors;
 using Kanban.API.Models;
+using Kanban.API.Notifiers;
 using Microsoft.EntityFrameworkCore;
 
 namespace Kanban.API.Services;
 
-public class ColumnService(ApplicationDbContext context, IRetryExecutor retryExecutor) : IColumnService
+public class ColumnService(
+    ApplicationDbContext context, IRetryExecutor retryExecutor, IBoardNotifier boardNotifier) : IColumnService
 {
     private const int MaxAttempts = 3;
     private static readonly string[] PositionIndexScopeHints = ["Columns.BoardId, Columns.Position", "IX_Columns_BoardId_Position"];
@@ -51,14 +53,18 @@ public class ColumnService(ApplicationDbContext context, IRetryExecutor retryExe
         context.Columns.Add(newColumn);
         await context.SaveChangesAsync(cancellationToken);
 
-        return Result.Success(new ColumnResponse
+        var createdColumn = new ColumnResponse
         (
             newColumn.Id,
             newColumn.Title,
             newColumn.Description,
             newColumn.Position,
             []
-        ));
+        );
+
+        await boardNotifier.ColumnCreated(boardId, createdColumn);
+
+        return createdColumn;
     }
 
     public async Task<Result> DeleteAsync(int boardId, int columnId, CancellationToken cancellationToken = default)
@@ -82,6 +88,8 @@ public class ColumnService(ApplicationDbContext context, IRetryExecutor retryExe
 
             await context.SaveChangesAsync(cancellationToken);
 
+            await boardNotifier.ColumnDeleted(boardId, columnId);
+
             return Result.Success();
         }
         catch (DbUpdateException ex) when (DbConflictClassifier.IsForeignKeyViolation(ex))
@@ -102,14 +110,18 @@ public class ColumnService(ApplicationDbContext context, IRetryExecutor retryExe
         column.Description = request.Description;
         await context.SaveChangesAsync(cancellationToken);
 
-        return Result.Success(new ColumnResponse
+        var updatedColumn = new ColumnResponse
         (
             column.Id,
             column.Title,
             column.Description,
             column.Position,
             []
-        ));
+        );
+
+        await boardNotifier.ColumnUpdated(boardId, updatedColumn);
+
+        return updatedColumn;
     }
 
     public async Task<Result<MoveColumnResponse>> MoveAsync(int boardId, int columnId, MoveColumnRequest request, CancellationToken cancellationToken = default)
@@ -144,7 +156,16 @@ public class ColumnService(ApplicationDbContext context, IRetryExecutor retryExe
 
         var affectedColumns = await GetAffectedColumnsAsync(boardId, cancellationToken);
 
-        return Result.Success(new MoveColumnResponse(column.Id, column.Position, affectedColumns));
+        var movedColumnResponse = new MoveColumnResponse
+        (
+            column.Id,
+            column.Position,
+            affectedColumns
+        );
+
+        await boardNotifier.ColumnMoved(boardId, movedColumnResponse);
+
+        return movedColumnResponse;
     }
 
     private async Task ReorderAsync(Column column, int requestedPosition, CancellationToken cancellationToken)

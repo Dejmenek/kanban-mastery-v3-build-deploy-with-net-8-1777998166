@@ -3,11 +3,13 @@ using Kanban.API.Data;
 using Kanban.API.DTOs.Boards.Cards;
 using Kanban.API.Errors;
 using Kanban.API.Models;
+using Kanban.API.Notifiers;
 using Microsoft.EntityFrameworkCore;
 
 namespace Kanban.API.Services;
 
-public class CardService(ApplicationDbContext context, IRetryExecutor retryExecutor) : ICardService
+public class CardService(
+    ApplicationDbContext context, IRetryExecutor retryExecutor, IBoardNotifier boardNotifier) : ICardService
 {
     private const int MaxAttempts = 3;
     private static readonly string[] PositionIndexScopeHints = ["Cards.ColumnId, Cards.Position", "IX_Cards_ColumnId_Position"];
@@ -29,14 +31,18 @@ public class CardService(ApplicationDbContext context, IRetryExecutor retryExecu
         card.AssignedToUserId = request.UserId;
         await context.SaveChangesAsync(cancellationToken);
 
-        return Result.Success(new CardResponse
+        var assignedCard = new CardResponse
         (
             card.Id,
             card.Title,
             card.Description,
             card.Position,
             new CardAssigneeResponse(assignedUser.Id, assignedUser.UserName, assignedUser.Email)
-        ));
+        );
+
+        await boardNotifier.CardAssigned(boardId, assignedCard);
+
+        return assignedCard;
     }
 
     public async Task<Result<CardResponse>> CreateAsync(int boardId, CreateCardRequest request, CancellationToken cancellationToken)
@@ -59,14 +65,18 @@ public class CardService(ApplicationDbContext context, IRetryExecutor retryExecu
         context.Cards.Add(newCard);
         await context.SaveChangesAsync(cancellationToken);
 
-        return Result.Success(new CardResponse
+        var createdCard = new CardResponse
         (
             newCard.Id,
             newCard.Title,
             newCard.Description,
             newCard.Position,
             null
-        ));
+        );
+
+        await boardNotifier.CardCreated(boardId, request.ColumnId, createdCard);
+
+        return createdCard;
     }
 
     public async Task<Result> DeleteAsync(int boardId, int cardId, CancellationToken cancellationToken)
@@ -90,6 +100,8 @@ public class CardService(ApplicationDbContext context, IRetryExecutor retryExecu
 
         await context.SaveChangesAsync(cancellationToken);
 
+        await boardNotifier.CardDeleted(boardId, cardId);
+
         return Result.Success();
     }
 
@@ -107,7 +119,7 @@ public class CardService(ApplicationDbContext context, IRetryExecutor retryExecu
         card.Description = request.Description;
         await context.SaveChangesAsync(cancellationToken);
 
-        return Result.Success(new CardResponse
+        var updatedCard = new CardResponse
         (
             card.Id,
             card.Title,
@@ -115,7 +127,11 @@ public class CardService(ApplicationDbContext context, IRetryExecutor retryExecu
             card.Position,
             card.AssignedToUser is null ? null : new CardAssigneeResponse(
                 card.AssignedToUser.Id, card.AssignedToUser.UserName, card.AssignedToUser.Email)
-        ));
+        );
+
+        await boardNotifier.CardUpdated(boardId, updatedCard);
+
+        return updatedCard;
     }
 
     public async Task<Result<MoveCardResponse>> MoveAsync(int boardId, int cardId, MoveCardRequest request, CancellationToken cancellationToken)
@@ -170,7 +186,11 @@ public class CardService(ApplicationDbContext context, IRetryExecutor retryExecu
             : new[] { card.ColumnId };
         var affectedColumns = await GetAffectedColumnsAsync(affectedColumnIds, cancellationToken);
 
-        return Result.Success(new MoveCardResponse(card.Id, card.ColumnId, card.Position, affectedColumns));
+        var movedCardResponse = new MoveCardResponse(card.Id, card.ColumnId, card.Position, affectedColumns);
+
+        await boardNotifier.CardMoved(boardId, movedCardResponse);
+
+        return movedCardResponse;
     }
 
     private async Task<IReadOnlyList<AffectedColumnResponse>> GetAffectedColumnsAsync(
