@@ -4,10 +4,55 @@ using Kanban.API.Endpoints;
 using Kanban.API.Models;
 using Kanban.API.Services;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
+using System.Globalization;
+using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddRateLimiter(opt =>
+{
+    opt.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+    opt.OnRejected = async (context, cancellationToken) =>
+    {
+        var httpContext = context.HttpContext;
+
+        if (context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter))
+        {
+            httpContext.Response.Headers.RetryAfter =
+                ((int)retryAfter.TotalSeconds).ToString(NumberFormatInfo.InvariantInfo);
+        }
+
+        var problem = new ProblemDetails
+        {
+            Type = "https://datatracker.ietf.org/doc/html/rfc6585#section-4",
+            Title = "Too many requests",
+            Status = StatusCodes.Status429TooManyRequests,
+            Detail = "You have exceeded the rate limit. Slow down and retry after the Retry-After header value.",
+            Instance = httpContext.Request.Path
+        };
+        problem.Extensions["traceId"] = httpContext.TraceIdentifier;
+
+        httpContext.Response.ContentType = "application/problem+json";
+        await httpContext.Response.WriteAsJsonAsync(problem, cancellationToken);
+    };
+
+    opt.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
+        RateLimitPartition.GetTokenBucketLimiter(
+            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new TokenBucketRateLimiterOptions
+            {
+                TokenLimit = 100,
+                TokensPerPeriod = 10,
+                ReplenishmentPeriod = TimeSpan.FromMinutes(1),
+                QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                QueueLimit = 0,
+                AutoReplenishment = true
+            }));
+});
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
 {
@@ -123,6 +168,8 @@ else
 {
     app.UseCors("ProdPolicy");
 }
+
+app.UseRateLimiter();
 
 app.UseAuthentication();
 app.UseAuthorization();
