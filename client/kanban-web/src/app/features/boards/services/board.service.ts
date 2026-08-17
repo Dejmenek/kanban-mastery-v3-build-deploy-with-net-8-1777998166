@@ -21,10 +21,13 @@ import {
   CreateCardRequest,
   CreateColumnRequest,
   MoveCardRequest,
+  MoveCardResponse,
+  MoveColumnResponse,
   UpdateBoardRequest,
   UpdateColumnRequest,
 } from '../models/board.models';
 import { ColumnService } from './column.service';
+import { BoardHubService } from './board-hub.service';
 
 @Service()
 export class BoardService {
@@ -32,6 +35,7 @@ export class BoardService {
   private cardService = inject(CardService);
   private memberService = inject(MemberService);
   private columnService = inject(ColumnService);
+  private hub = inject(BoardHubService);
   private columnGeneration = new Map<number, number>();
   private moveColumnGeneration = 0;
 
@@ -48,6 +52,27 @@ export class BoardService {
   deletingCardIds = signal<ReadonlySet<number>>(new Set());
   deletingColumnIds = signal<ReadonlySet<number>>(new Set());
   assigningCardIds = signal<ReadonlySet<number>>(new Set());
+  boardDeleted = signal(false);
+  isResyncing = signal(false);
+  readonly connectionState = this.hub.connectionState;
+
+  constructor() {
+    this.hub.cardCreated$.subscribe(({ columnId, card }) => this.addCardToColumn(columnId, card));
+    this.hub.cardUpdated$.subscribe((card) => this.replaceCard(card));
+    this.hub.cardAssigned$.subscribe((card) => this.replaceCard(card));
+    this.hub.cardMoved$.subscribe((move) => this.applyCardMoved(move));
+    this.hub.cardDeleted$.subscribe((cardId) => this.removeCard(cardId));
+    this.hub.columnCreated$.subscribe((column) => this.addColumn(column));
+    this.hub.columnUpdated$.subscribe((column) => this.updateColumnFields(column));
+    this.hub.columnMoved$.subscribe((move) => this.applyColumnMoved(move));
+    this.hub.columnDeleted$.subscribe((columnId) => this.removeColumn(columnId));
+    this.hub.memberAdded$.subscribe((member) => this.appendMember(member));
+    this.hub.boardUpdated$.subscribe((board) => this.applyBoardUpdated(board));
+    this.hub.boardDeleted$.subscribe((boardId) => this.applyBoardDeleted(boardId));
+    this.hub.reconnected$.subscribe(() => {
+      if (this.boardId() !== null) this.refetchBoard();
+    });
+  }
 
   setBoard(board: BoardDetailsResponse): void {
     this.boardId.set(board.id);
@@ -60,9 +85,17 @@ export class BoardService {
     this.deletingCardIds.set(new Set());
     this.deletingColumnIds.set(new Set());
     this.assigningCardIds.set(new Set());
+    this.boardDeleted.set(false);
+    this.isResyncing.set(false);
     this.columnGeneration.clear();
     this.moveColumnGeneration = 0;
     this.applyBoardSnapshot(board);
+    this.hub.joinBoard$(board.id).subscribe();
+  }
+
+  leaveRealtimeBoard(): void {
+    const boardId = this.boardId();
+    if (boardId !== null) this.hub.leaveBoard$(boardId).subscribe();
   }
 
   getAll(): Observable<BoardSummaryResponse[]> {
@@ -89,23 +122,12 @@ export class BoardService {
     const boardId = this.requireBoardId();
     return this.api
       .put<UpdateBoardRequest, BoardResponse>(`/api/boards/${boardId}`, request)
-      .pipe(
-        tap((updated) => {
-          this.boardName.set(updated.name);
-          this.boardDescription.set(updated.description);
-        }),
-      );
+      .pipe(tap((updated) => this.updateBoardFields(updated)));
   }
 
   createCard(request: CreateCardRequest): Observable<CardResponse> {
     const boardId = this.requireBoardId();
-    return this.cardService.create(boardId, request).pipe(
-      tap((card) =>
-        this.columns.update((cols) =>
-          cols.map((column) => (column.id === request.columnId ? { ...column, cards: [...column.cards, card] } : column)),
-        ),
-      ),
-    );
+    return this.cardService.create(boardId, request).pipe(tap((card) => this.addCardToColumn(request.columnId, card)));
   }
 
   assignCard(cardId: number, request: AssignCardRequest): Observable<CardResponse> {
@@ -113,14 +135,7 @@ export class BoardService {
     this.assigningCardIds.update((ids) => new Set(ids).add(cardId));
 
     return this.cardService.assign(boardId, cardId, request).pipe(
-      tap((updatedCard) =>
-        this.columns.update((cols) =>
-          cols.map((column) => ({
-            ...column,
-            cards: column.cards.map((card) => (card.id === updatedCard.id ? updatedCard : card)),
-          })),
-        ),
-      ),
+      tap((updatedCard) => this.replaceCard(updatedCard)),
       finalize(() =>
         this.assigningCardIds.update((ids) => {
           const next = new Set(ids);
@@ -137,11 +152,7 @@ export class BoardService {
     this.deleteCardError.set(null);
 
     return this.cardService.delete(boardId, cardId).pipe(
-      tap(() =>
-        this.columns.update((cols) =>
-          cols.map((column) => ({ ...column, cards: column.cards.filter((card) => card.id !== cardId) })),
-        ),
-      ),
+      tap(() => this.removeCard(cardId)),
       catchError((err: HttpErrorResponse) => {
         this.deleteCardError.set(extractErrorMessage(err, 'Could not delete card. Please try again.'));
         return EMPTY;
@@ -158,16 +169,12 @@ export class BoardService {
 
   addMember(request: AddBoardMemberRequest): Observable<BoardMemberResponse> {
     const boardId = this.requireBoardId();
-    return this.memberService.add(boardId, request).pipe(
-      tap((member) => this.members.update((current) => [...current, member])),
-    );
+    return this.memberService.add(boardId, request).pipe(tap((member) => this.appendMember(member)));
   }
 
   createColumn(request: CreateColumnRequest): Observable<ColumnResponse> {
     const boardId = this.requireBoardId();
-    return this.columnService.create(boardId, request).pipe(
-      tap((column) => this.columns.update((current) => [...current, column])),
-    );
+    return this.columnService.create(boardId, request).pipe(tap((column) => this.addColumn(column)));
   }
 
   deleteColumn(columnId: number): Observable<void> {
@@ -176,7 +183,7 @@ export class BoardService {
     this.deleteColumnError.set(null);
 
     return this.columnService.delete(boardId, columnId).pipe(
-      tap(() => this.columns.update((current) => current.filter((column) => column.id !== columnId))),
+      tap(() => this.removeColumn(columnId)),
       catchError((err: HttpErrorResponse) => {
         this.deleteColumnError.set(extractErrorMessage(err, 'Could not delete column. Please try again.'));
         return EMPTY;
@@ -193,13 +200,7 @@ export class BoardService {
 
   updateColumn(columnId: number, request: UpdateColumnRequest): Observable<ColumnResponse> {
     const boardId = this.requireBoardId();
-    return this.columnService.update(boardId, columnId, request).pipe(
-      tap((updated) =>
-        this.columns.update((cols) =>
-          cols.map((c) => (c.id === columnId ? { ...c, title: updated.title, description: updated.description } : c)),
-        ),
-      ),
-    );
+    return this.columnService.update(boardId, columnId, request).pipe(tap((updated) => this.updateColumnFields(updated)));
   }
 
   moveColumn(event: CdkDragDrop<ColumnResponse[]>): void {
@@ -353,10 +354,78 @@ export class BoardService {
   }
 
   private refetchBoard(): void {
-    this.getById(this.requireBoardId()).subscribe((board) => this.applyBoardSnapshot(board));
+    this.isResyncing.set(true);
+    this.getById(this.requireBoardId())
+      .pipe(finalize(() => this.isResyncing.set(false)))
+      .subscribe((board) => this.applyBoardSnapshot(board));
   }
 
   private cloneColumns(columns: readonly ColumnResponse[]): ColumnResponse[] {
     return columns.map((column) => ({ ...column, cards: [...column.cards] }));
+  }
+
+  private addCardToColumn(columnId: number, card: CardResponse): void {
+    this.columns.update((cols) =>
+      cols.map((column) =>
+        column.id === columnId && !column.cards.some((c) => c.id === card.id)
+          ? { ...column, cards: [...column.cards, card] }
+          : column,
+      ),
+    );
+  }
+
+  private replaceCard(card: CardResponse): void {
+    this.columns.update((cols) =>
+      cols.map((column) => ({
+        ...column,
+        cards: column.cards.map((c) => (c.id === card.id ? card : c)),
+      })),
+    );
+  }
+
+  private removeCard(cardId: number): void {
+    this.columns.update((cols) => cols.map((column) => ({ ...column, cards: column.cards.filter((c) => c.id !== cardId) })));
+  }
+
+  private addColumn(column: ColumnResponse): void {
+    this.columns.update((cols) => (cols.some((c) => c.id === column.id) ? cols : [...cols, column]));
+  }
+
+  private updateColumnFields(column: Pick<ColumnResponse, 'id' | 'title' | 'description'>): void {
+    this.columns.update((cols) =>
+      cols.map((c) => (c.id === column.id ? { ...c, title: column.title, description: column.description } : c)),
+    );
+  }
+
+  private removeColumn(columnId: number): void {
+    this.columns.update((cols) => cols.filter((c) => c.id !== columnId));
+  }
+
+  private appendMember(member: BoardMemberResponse): void {
+    this.members.update((current) => (current.some((m) => m.memberId === member.memberId) ? current : [...current, member]));
+  }
+
+  private updateBoardFields(board: Pick<BoardResponse, 'name' | 'description'>): void {
+    this.boardName.set(board.name);
+    this.boardDescription.set(board.description);
+  }
+
+  private applyCardMoved(move: MoveCardResponse): void {
+    const generations = new Map(move.affectedColumns.map((a) => [a.columnId, this.columnGeneration.get(a.columnId) ?? 0]));
+    this.reconcile(move.affectedColumns, generations);
+  }
+
+  private applyColumnMoved(move: MoveColumnResponse): void {
+    this.reconcileColumns(move.affectedColumns, this.moveColumnGeneration);
+  }
+
+  private applyBoardUpdated(board: BoardResponse): void {
+    if (board.id !== this.boardId()) return;
+    this.updateBoardFields(board);
+  }
+
+  private applyBoardDeleted(boardId: number): void {
+    if (boardId !== this.boardId()) return;
+    this.boardDeleted.set(true);
   }
 }
