@@ -1,7 +1,7 @@
 <section class="board-column">
   <header class="board-column-header">
     <div class="board-column-heading">
-      <button type="button" class="column-drag-handle" [class.disabled]="isEditing()" cdkDragHandle [cdkDragHandleDisabled]="isEditing()" aria-label="Reorder column">⠿</button>
+      <button type="button" class="column-drag-handle" [class.disabled]="isEditing() || isOffline()" cdkDragHandle [cdkDragHandleDisabled]="isEditing() || isOffline()" aria-label="Reorder column">⠿</button>
       @if (!isEditing()) {
         <h2 class="board-column-title">{{ column().title }}</h2>
         <span class="board-column-count">{{ column().cards.length }}</span>
@@ -9,10 +9,10 @@
     </div>
     @if (!isEditing()) {
       <div class="board-column-header-actions">
-        <button type="button" class="btn-secondary btn-sm" (click)="onEditClick()">Edit</button>
+        <button type="button" class="btn-secondary btn-sm" [disabled]="isOffline()" (click)="onEditClick()">Edit</button>
         <button type="button"
                 class="icon-delete-button"
-                [disabled]="isDeleting()"
+                [disabled]="isDeleting() || isOffline()"
                 [attr.aria-label]="isDeleting() ? 'Deleting column…' : 'Delete column'"
                 (click)="onDeleteClick()">
           <span class="delete-icon" aria-hidden="true">&times;</span>
@@ -41,7 +41,7 @@
 
       <div class="form-actions">
         <button type="button" class="btn-secondary btn-sm" [disabled]="isSubmittingEdit()" (click)="onEditCancel()">Cancel</button>
-        <button type="submit" class="btn-primary btn-sm" [disabled]="!editForm.valid || isSubmittingEdit()">
+        <button type="submit" class="btn-primary btn-sm" [disabled]="!editForm.valid || isSubmittingEdit() || isOffline()">
           {{ isSubmittingEdit() ? 'Saving...' : 'Save' }}
         </button>
       </div>
@@ -58,7 +58,7 @@
   </div>
 
   @if (!isAdding()) {
-    <button type="button" class="board-column-add-btn" (click)="isAdding.set(true)">+ Add card</button>
+    <button type="button" class="board-column-add-btn" [disabled]="isOffline()" (click)="isAdding.set(true)">+ Add card</button>
   } @else {
     <form class="form board-column-add-form" [formGroup]="addCardForm" (ngSubmit)="onSubmit()" novalidate>
       <div class="form-field">
@@ -80,7 +80,7 @@
 
       <div class="form-actions">
         <button type="button" class="btn-secondary btn-sm" [disabled]="isSubmitting()" (click)="onCancel()">Cancel</button>
-        <button type="submit" class="btn-primary btn-sm" [disabled]="!addCardForm.valid || isSubmitting()">
+        <button type="submit" class="btn-primary btn-sm" [disabled]="!addCardForm.valid || isSubmitting() || isOffline()">
           {{ isSubmitting() ? 'Adding...' : 'Add card' }}
         </button>
       </div>

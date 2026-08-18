@@ -55,6 +55,7 @@ export class BoardService {
   boardDeleted = signal(false);
   isResyncing = signal(false);
   readonly connectionState = this.hub.connectionState;
+  readonly isOffline = computed(() => this.connectionState() !== 'connected');
 
   constructor() {
     this.hub.cardCreated$.subscribe(({ columnId, card }) => this.addCardToColumn(columnId, card));

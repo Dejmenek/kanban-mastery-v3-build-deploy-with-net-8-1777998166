@@ -6,7 +6,7 @@
           <h1 class="board-detail-title">{{ boardService.boardName() }}</h1>
           <app-connection-status />
           @if (boardService.isOwner()) {
-            <button type="button" class="btn-secondary btn-sm" (click)="onEditBoard()">Edit</button>
+            <button type="button" class="btn-secondary btn-sm" [disabled]="boardService.isOffline()" (click)="onEditBoard()">Edit</button>
           }
         </div>
         @if (boardService.boardDescription()) {
@@ -30,7 +30,7 @@
         <app-error-message [message]="editErrorMessage()" />
         <div class="form-actions">
           <button type="button" class="btn-secondary btn-sm" [disabled]="isSubmittingEdit()" (click)="onEditBoardCancel()">Cancel</button>
-          <button type="submit" class="btn-primary btn-sm" [disabled]="!editBoardForm.valid || isSubmittingEdit()">
+          <button type="submit" class="btn-primary btn-sm" [disabled]="!editBoardForm.valid || isSubmittingEdit() || boardService.isOffline()">
             {{ isSubmittingEdit() ? 'Saving...' : 'Save' }}
           </button>
         </div>
@@ -47,7 +47,7 @@
         }
       </div>
       @if (boardService.isOwner()) {
-        <button class="btn-primary btn-sm" (click)="openDialog()">Invite</button>
+        <button class="btn-primary btn-sm" [disabled]="boardService.isOffline()" (click)="openDialog()">Invite</button>
       }
     </div>
   </header>
@@ -70,12 +70,12 @@
        (cdkDropListDropped)="onColumnDropped($event)">
     <div class="board-columns" cdkDropListGroup>
       @for (column of boardService.columns(); track column.id) {
-      <app-board-column cdkDrag [cdkDragData]="column" [column]="column" (cdkDragStarted)="onColumnDragStarted()" />
+      <app-board-column cdkDrag [cdkDragDisabled]="boardService.isOffline()" [cdkDragData]="column" [column]="column" (cdkDragStarted)="onColumnDragStarted()" />
       } @empty {
       <p class="board-detail-empty">This board has no columns yet.</p>
       }
       @if (!isCreatingColumn()) {
-      <button type="button" class="board-add-column-btn" (click)="isCreatingColumn.set(true)">+ Create column</button>
+      <button type="button" class="board-add-column-btn" [disabled]="boardService.isOffline()" (click)="isCreatingColumn.set(true)">+ Create column</button>
       } @else {
       <form class="form board-add-column-form" [formGroup]="createColumnForm" (ngSubmit)="onCreateColumnSubmit()" novalidate>
         <div class="form-field">
@@ -95,7 +95,7 @@
 
         <div class="form-actions">
           <button type="button" class="btn-secondary btn-sm" [disabled]="isSubmittingCreateColumn()" (click)="onCreateColumnCancel()">Cancel</button>
-          <button type="submit" class="btn-primary btn-sm" [disabled]="!createColumnForm.valid || isSubmittingCreateColumn()">
+          <button type="submit" class="btn-primary btn-sm" [disabled]="!createColumnForm.valid || isSubmittingCreateColumn() || boardService.isOffline()">
             {{ isSubmittingCreateColumn() ? 'Creating...' : 'Create column' }}
           </button>
         </div>

@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { DialogRef } from '@angular/cdk/dialog';
 import { FormGroup, FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
@@ -22,6 +22,7 @@ export class InviteModal {
   });
   protected errorMessage = signal<string | null>(null);
   protected isSubmitting = signal(false);
+  protected isOffline = computed(() => this.boardService.isOffline());
 
   protected onSubmit() {
     if (this.inviteForm.invalid) {

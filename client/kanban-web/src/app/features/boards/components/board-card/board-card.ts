@@ -31,6 +31,7 @@ export class BoardCard {
 
   protected isDeleting = computed(() => this.boardService.deletingCardIds().has(this.card().id));
   protected isAssigning = computed(() => this.boardService.assigningCardIds().has(this.card().id));
+  protected isOffline = computed(() => this.boardService.isOffline());
   protected errorMessage = signal<string | null>(null);
   popupExpanded = signal(false);
   query = signal('');
