@@ -37,6 +37,7 @@ export class BoardColumn {
   protected editErrorMessage = signal<string | null>(null);
   protected isSubmittingEdit = signal(false);
   protected isDeleting = computed(() => this.boardService.deletingColumnIds().has(this.column().id));
+  protected isOffline = computed(() => this.boardService.isOffline());
 
 
   protected onDropped(event: CdkDragDrop<CardResponse[]>): void {

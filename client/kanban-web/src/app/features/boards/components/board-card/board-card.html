@@ -1,7 +1,7 @@
-<article class="board-card" cdkDrag [cdkDragData]="card()" [cdkDragDisabled]="popupExpanded()">
+<article class="board-card" cdkDrag [cdkDragData]="card()" [cdkDragDisabled]="popupExpanded() || isOffline()">
   <button type="button"
           class="card-delete-button icon-delete-button"
-          [disabled]="isDeleting()"
+          [disabled]="isDeleting() || isOffline()"
           [attr.aria-label]="isDeleting() ? 'Deleting card…' : 'Delete card'"
           (click)="onDeleteClick()">
     <span class="delete-icon" aria-hidden="true">&times;</span>
@@ -17,7 +17,7 @@
     <span class="board-card-assignee-name">{{ assignee.userName ?? assignee.email ?? 'Unknown' }}</span>
   </div>
   } @else if (!popupExpanded()) {
-  <button type="button" class="assignee-placeholder" (click)="popupExpanded.set(true)" aria-label="Assign a member">
+  <button type="button" class="assignee-placeholder" [disabled]="isOffline()" (click)="popupExpanded.set(true)" aria-label="Assign a member">
     <span class="avatar avatar-placeholder">+</span>
   </button>
   } @else {
@@ -28,7 +28,7 @@
            placeholder="Search members…"
            [(value)]="query"
            [(expanded)]="popupExpanded"
-           [disabled]="isAssigning()"
+           [disabled]="isAssigning() || isOffline()"
            (focusout)="onBlur()" />
     <button type="button"
             class="clear-button"
