@@ -1,1 +1,95 @@
-<p>home works!</p>
+<div class="home-page">
+  <!-- Hero -->
+  <section class="hero">
+    <div class="hero-text">
+      <p class="eyebrow">Kanban boards for small teams</p>
+      <h1 class="hero-title">Plan the work. Watch it move.</h1>
+      <p class="hero-subtitle">
+        Boards, columns, and cards for tracking work from idea to done &mdash; with drag-and-drop
+        reordering and updates that sync to your team in real time.
+      </p>
+      <div class="hero-actions">
+        @if (auth.loggedIn()) {
+          <a routerLink="/dashboard" class="btn-primary">Go to your boards</a>
+        } @else {
+          <a routerLink="/register" class="btn-primary">Get started</a>
+          <a routerLink="/login" class="btn-secondary">Log in</a>
+        }
+      </div>
+    </div>
+
+    <div class="hero-visual" aria-hidden="true">
+      <svg viewBox="0 0 440 320" class="hero-diagram" xmlns="http://www.w3.org/2000/svg">
+        <!-- column 1 -->
+        <rect x="20" y="20" width="120" height="280" class="diagram-column" />
+        <rect x="20" y="20" width="120" height="28" class="diagram-header" />
+        <text x="80" y="38" class="diagram-label">TO DO</text>
+        <rect x="32" y="66" width="96" height="36" rx="2" class="diagram-card" />
+        <rect x="32" y="114" width="96" height="36" rx="2" class="diagram-card" />
+        <rect x="32" y="162" width="96" height="36" rx="2" class="diagram-card diagram-card-ghost" />
+
+        <!-- column 2 -->
+        <rect x="160" y="20" width="120" height="280" class="diagram-column" />
+        <rect x="160" y="20" width="120" height="28" class="diagram-header" />
+        <text x="220" y="38" class="diagram-label">DOING</text>
+        <rect x="172" y="66" width="96" height="36" rx="2" class="diagram-card diagram-card-accent" />
+        <rect x="172" y="114" width="96" height="36" rx="2" class="diagram-card" />
+
+        <!-- column 3 -->
+        <rect x="300" y="20" width="120" height="280" class="diagram-column" />
+        <rect x="300" y="20" width="120" height="28" class="diagram-header" />
+        <text x="360" y="38" class="diagram-label">DONE</text>
+        <rect x="312" y="66" width="96" height="36" rx="2" class="diagram-card" />
+
+        <!-- connector: card moving from column 1 to column 2 -->
+        <path d="M128 180 L172 90" class="diagram-connector" stroke-dasharray="4 5" />
+        <circle cx="128" cy="180" r="4" class="diagram-node" />
+        <circle cx="172" cy="90" r="4" class="diagram-node diagram-node-accent" />
+      </svg>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section class="features" aria-label="Features">
+    @for (feature of features; track feature.title; let i = $index) {
+      <article class="feature-row" [class.feature-row-reverse]="i % 2 === 1">
+        <div class="feature-icon-wrap">
+          <span class="feature-icon" [class]="feature.icon" aria-hidden="true"></span>
+        </div>
+        <div class="feature-copy">
+          <h2 class="feature-title">{{ feature.title }}</h2>
+          <p class="feature-description">{{ feature.description }}</p>
+        </div>
+      </article>
+    }
+  </section>
+
+  <!-- How it works -->
+  <section class="how-it-works">
+    <h2 class="section-heading">How it works</h2>
+    <ol class="steps">
+      @for (step of steps; track step.number) {
+        <li class="step">
+          <span class="step-number">{{ step.number }}</span>
+          <div class="step-copy">
+            <h3 class="step-title">{{ step.title }}</h3>
+            <p class="step-description">{{ step.description }}</p>
+          </div>
+        </li>
+      }
+    </ol>
+  </section>
+
+  <!-- CTA -->
+  <section class="cta-banner">
+    @if (auth.loggedIn()) {
+      <h2 class="cta-title">Back to your boards</h2>
+      <p class="cta-subtitle">Pick up where you left off.</p>
+      <a routerLink="/dashboard" class="btn-primary">Go to your boards</a>
+    } @else {
+      <h2 class="cta-title">Set up your first board</h2>
+      <p class="cta-subtitle">Free to create. No credit card required.</p>
+      <a routerLink="/register" class="btn-primary">Create an account</a>
+    }
+  </section>
+</div>
