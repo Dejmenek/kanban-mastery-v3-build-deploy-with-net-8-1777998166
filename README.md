@@ -81,6 +81,4 @@ Each board has an **owner** and a list of **members**. Owners manage the board a
 
 ## 📝 TODO
 
-- **Real-time collaboration** — push board/column/card changes to connected clients (e.g. via SignalR) instead of requiring a refresh.
-- **Rate limiting** — protect the API from abuse using ASP.NET Core's built-in rate limiting middleware.
 - **API versioning** — introduce versioned routes (e.g. `/api/v1/...`) so the API can evolve without breaking existing clients.
