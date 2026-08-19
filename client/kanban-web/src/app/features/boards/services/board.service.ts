@@ -49,6 +49,7 @@ export class BoardService {
   moveError = signal<string | null>(null);
   deleteCardError = signal<string | null>(null);
   deleteColumnError = signal<string | null>(null);
+  syncError = signal<string | null>(null);
   deletingCardIds = signal<ReadonlySet<number>>(new Set());
   deletingColumnIds = signal<ReadonlySet<number>>(new Set());
   assigningCardIds = signal<ReadonlySet<number>>(new Set());
@@ -58,12 +59,16 @@ export class BoardService {
   readonly isOffline = computed(() => this.connectionState() !== 'connected');
 
   constructor() {
-    this.hub.cardCreated$.subscribe(({ columnId, card }) => this.addCardToColumn(columnId, card));
+    this.hub.cardCreated$.subscribe(({ columnId, card }) => {
+      this.addCardToColumn(columnId, card);
+    });
     this.hub.cardUpdated$.subscribe((card) => this.replaceCard(card));
     this.hub.cardAssigned$.subscribe((card) => this.replaceCard(card));
     this.hub.cardMoved$.subscribe((move) => this.applyCardMoved(move));
     this.hub.cardDeleted$.subscribe((cardId) => this.removeCard(cardId));
-    this.hub.columnCreated$.subscribe((column) => this.addColumn(column));
+    this.hub.columnCreated$.subscribe((column) => {
+      this.addColumn(column);
+    });
     this.hub.columnUpdated$.subscribe((column) => this.updateColumnFields(column));
     this.hub.columnMoved$.subscribe((move) => this.applyColumnMoved(move));
     this.hub.columnDeleted$.subscribe((columnId) => this.removeColumn(columnId));
@@ -72,6 +77,14 @@ export class BoardService {
     this.hub.boardDeleted$.subscribe((boardId) => this.applyBoardDeleted(boardId));
     this.hub.reconnected$.subscribe(() => {
       if (this.boardId() !== null) this.refetchBoard();
+    });
+    this.hub.joinFailed$.subscribe((boardId) => {
+      if (boardId === this.boardId()) {
+        this.syncError.set("Live updates aren't working for this board. Try refreshing the page.");
+      }
+    });
+    this.hub.joinSucceeded$.subscribe((boardId) => {
+      if (boardId === this.boardId()) this.syncError.set(null);
     });
   }
 
@@ -83,6 +96,7 @@ export class BoardService {
     this.moveError.set(null);
     this.deleteCardError.set(null);
     this.deleteColumnError.set(null);
+    this.syncError.set(null);
     this.deletingCardIds.set(new Set());
     this.deletingColumnIds.set(new Set());
     this.assigningCardIds.set(new Set());

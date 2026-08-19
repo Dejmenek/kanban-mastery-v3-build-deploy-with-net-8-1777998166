@@ -3,11 +3,10 @@ import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import * as signalR from '@microsoft/signalr';
 import {
   EMPTY,
-  NEVER,
   Observable,
   Subject,
   catchError,
-  defaultIfEmpty,
+  combineLatest,
   defer,
   distinctUntilChanged,
   filter,
@@ -34,6 +33,9 @@ export type HubConnectionState = 'disconnected' | 'connecting' | 'connected' | '
 const CONNECTION_STATUS_DISPLAY_DELAY_MS = 400;
 const RECONNECT_BASE_DELAY_MS = 1000;
 const RECONNECT_MAX_DELAY_MS = 30000;
+const INVOKE_RETRY_COUNT = 3;
+const INVOKE_RETRY_BASE_DELAY_MS = 500;
+const INVOKE_RETRY_MAX_DELAY_MS = 4000;
 
 export interface CardCreatedEvent {
   columnId: number;
@@ -64,6 +66,18 @@ function connectHub$(
   }).pipe(
     retry({
       delay: (_error, attempt) => timer(Math.min(RECONNECT_BASE_DELAY_MS * 2 ** (attempt - 1), RECONNECT_MAX_DELAY_MS)),
+    }),
+  );
+}
+
+function invokeWithRetry$(connection: signalR.HubConnection, method: 'JoinBoard' | 'LeaveBoard', boardId: number): Observable<void> {
+  return from(connection.invoke(method, boardId)).pipe(
+    retry({
+      count: INVOKE_RETRY_COUNT,
+      delay: (attempt) => {
+        const delay = Math.min(INVOKE_RETRY_BASE_DELAY_MS * 2 ** (attempt - 1), INVOKE_RETRY_MAX_DELAY_MS);
+        return timer(delay);
+      },
     }),
   );
 }
@@ -111,6 +125,20 @@ export class BoardHubService {
     shareReplay(1),
   );
 
+  private readonly liveConnection$: Observable<signalR.HubConnection> = this.connection$.pipe(
+    switchMap((connection) =>
+      connection
+        ? merge(
+            of(connection),
+            hubLifecycle$(connection).pipe(
+              filter((state) => state === 'connected'),
+              map(() => connection),
+            ),
+          )
+        : EMPTY,
+    ),
+  );
+
   readonly connectionState = toSignal(
     this.connection$.pipe(
       switchMap((connection) =>
@@ -143,22 +171,37 @@ export class BoardHubService {
   private readonly rejoinedSubject = new Subject<void>();
   readonly reconnected$: Observable<void> = this.rejoinedSubject.asObservable();
 
+  private readonly joinFailedSubject = new Subject<number>();
+  readonly joinFailed$: Observable<number> = this.joinFailedSubject.asObservable();
+
+  private readonly joinSucceededSubject = new Subject<number>();
+  readonly joinSucceeded$: Observable<number> = this.joinSucceededSubject.asObservable();
+
   constructor() {
     effect(() => {
       if (!this.authService.loggedIn()) this.wantConnection.set(false);
     });
 
-    this.connection$
+    combineLatest([this.liveConnection$, toObservable(this.currentBoardId)])
       .pipe(
-        switchMap((connection) => (connection ? hubLifecycle$(connection) : EMPTY)),
-        filter((state) => state === 'connected'),
-        switchMap(() =>
-          this.currentBoardId !== null
-            ? this.invokeWhenConnected$('JoinBoard', this.currentBoardId).pipe(defaultIfEmpty(undefined))
-            : of(undefined),
+        switchMap(([connection, boardId]) =>
+          boardId === null
+            ? EMPTY
+            : invokeWithRetry$(connection, 'JoinBoard', boardId).pipe(
+                map(() => boardId),
+                catchError(() => {
+                  this.joinFailedSubject.next(boardId);
+                  return EMPTY;
+                }),
+              ),
         ),
       )
-      .subscribe(() => this.rejoinedSubject.next());
+      .subscribe((boardId) => {
+        const rejoined = this.joinedBoardId === boardId;
+        this.joinedBoardId = boardId;
+        this.joinSucceededSubject.next(boardId);
+        if (rejoined) this.rejoinedSubject.next();
+      });
   }
 
   joinBoard$(boardId: number): Observable<void> {
@@ -204,7 +247,12 @@ export class BoardHubService {
   private invokeIfConnected$(method: 'JoinBoard' | 'LeaveBoard', boardId: number): Observable<void> {
     return this.connection$.pipe(
       take(1),
-      switchMap((connection) => (connection?.state === signalR.HubConnectionState.Connected ? from(connection.invoke(method, boardId)) : EMPTY)),
+      switchMap((connection) => {
+        if (connection?.state !== signalR.HubConnectionState.Connected) {
+          return EMPTY;
+        }
+        return invokeWithRetry$(connection, method, boardId);
+      }),
       catchError(() => EMPTY),
     );
   }
