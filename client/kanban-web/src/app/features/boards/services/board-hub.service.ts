@@ -55,17 +55,23 @@ function connectHub$(
 
     registerHandlers(connection);
 
-    const unexpectedClose$ = fromEventPattern<Error | undefined>((handler) => connection.onclose(handler)).pipe(
-      switchMap((error) => (error ? throwError(() => error) : NEVER)),
+    const closed$ = fromEventPattern<Error | undefined>((handler) => connection.onclose(handler)).pipe(
+      switchMap((error) => throwError(() => error ?? new Error('SignalR connection was closed.'))),
     );
 
     return from(connection.start()).pipe(
-      switchMap(() => merge(of(connection), unexpectedClose$)),
-      finalize(() => void connection.stop()),
+      switchMap(() => merge(of(connection), closed$)),
+      finalize(() => {
+        void connection.stop();
+      }),
     );
   }).pipe(
     retry({
-      delay: (_error, attempt) => timer(Math.min(RECONNECT_BASE_DELAY_MS * 2 ** (attempt - 1), RECONNECT_MAX_DELAY_MS)),
+      delay: (attempt) => {
+        const delay = Math.min(RECONNECT_BASE_DELAY_MS * 2 ** (attempt - 1), RECONNECT_MAX_DELAY_MS);
+        return timer(delay);
+      },
+      resetOnSuccess: true,
     }),
   );
 }
@@ -95,7 +101,8 @@ export class BoardHubService {
   private tokenService = inject(TokenService);
   private authService = inject(AuthService);
 
-  private currentBoardId: number | null = null;
+  private currentBoardId = signal<number | null>(null);
+  private joinedBoardId: number | null = null;
   private wantConnection = signal(false);
 
   private readonly cardCreatedSubject = new Subject<[columnId: number, card: CardResponse]>();
@@ -207,41 +214,62 @@ export class BoardHubService {
   joinBoard$(boardId: number): Observable<void> {
     this.wantConnection.set(true);
 
-    const previousBoardId = this.currentBoardId;
-    this.currentBoardId = boardId;
+    const previousBoardId = this.currentBoardId();
+    if (previousBoardId === boardId) {
+      return of(undefined);
+    }
 
-    const leavePrevious$ =
-      previousBoardId !== null && previousBoardId !== boardId ? this.invokeIfConnected$('LeaveBoard', previousBoardId) : of(undefined);
-    return leavePrevious$.pipe(switchMap(() => this.invokeWhenConnected$('JoinBoard', boardId)));
+    this.joinedBoardId = null;
+    this.currentBoardId.set(boardId);
+
+    return previousBoardId !== null ? this.invokeIfConnected$('LeaveBoard', previousBoardId) : of(undefined);
   }
 
   leaveBoard$(boardId: number): Observable<void> {
-    if (this.currentBoardId === boardId) this.currentBoardId = null;
+    if (this.currentBoardId() === boardId) {
+      this.currentBoardId.set(null);
+      this.joinedBoardId = null;
+    }
     return this.invokeIfConnected$('LeaveBoard', boardId);
   }
 
   private registerHandlers(connection: signalR.HubConnection): void {
-    connection.on('CardCreated', (columnId: number, card: CardResponse) => this.cardCreatedSubject.next([columnId, card]));
-    connection.on('CardUpdated', (card: CardResponse) => this.cardUpdatedSubject.next([card]));
-    connection.on('CardAssigned', (card: CardResponse) => this.cardAssignedSubject.next([card]));
-    connection.on('CardMoved', (moveCard: MoveCardResponse) => this.cardMovedSubject.next([moveCard]));
-    connection.on('CardDeleted', (cardId: number) => this.cardDeletedSubject.next([cardId]));
-    connection.on('ColumnCreated', (column: ColumnResponse) => this.columnCreatedSubject.next([column]));
-    connection.on('ColumnUpdated', (column: ColumnResponse) => this.columnUpdatedSubject.next([column]));
-    connection.on('ColumnMoved', (moveColumn: MoveColumnResponse) => this.columnMovedSubject.next([moveColumn]));
-    connection.on('ColumnDeleted', (columnId: number) => this.columnDeletedSubject.next([columnId]));
-    connection.on('MemberAdded', (member: BoardMemberResponse) => this.memberAddedSubject.next([member]));
-    connection.on('BoardUpdated', (board: BoardResponse) => this.boardUpdatedSubject.next([board]));
-    connection.on('BoardDeleted', (boardId: number) => this.boardDeletedSubject.next([boardId]));
-  }
-
-  private invokeWhenConnected$(method: 'JoinBoard' | 'LeaveBoard', boardId: number): Observable<void> {
-    return this.connection$.pipe(
-      filter((connection): connection is signalR.HubConnection => connection?.state === signalR.HubConnectionState.Connected),
-      take(1),
-      switchMap((connection) => from(connection.invoke(method, boardId))),
-      catchError(() => EMPTY),
-    );
+    connection.on('CardCreated', (columnId: number, card: CardResponse) => {
+      this.cardCreatedSubject.next([columnId, card]);
+    });
+    connection.on('CardUpdated', (card: CardResponse) => {
+      this.cardUpdatedSubject.next([card]);
+    });
+    connection.on('CardAssigned', (card: CardResponse) => {
+      this.cardAssignedSubject.next([card]);
+    });
+    connection.on('CardMoved', (moveCard: MoveCardResponse) => {
+      this.cardMovedSubject.next([moveCard]);
+    });
+    connection.on('CardDeleted', (cardId: number) => {
+      this.cardDeletedSubject.next([cardId]);
+    });
+    connection.on('ColumnCreated', (column: ColumnResponse) => {
+      this.columnCreatedSubject.next([column]);
+    });
+    connection.on('ColumnUpdated', (column: ColumnResponse) => {
+      this.columnUpdatedSubject.next([column]);
+    });
+    connection.on('ColumnMoved', (moveColumn: MoveColumnResponse) => {
+      this.columnMovedSubject.next([moveColumn]);
+    });
+    connection.on('ColumnDeleted', (columnId: number) => {
+      this.columnDeletedSubject.next([columnId]);
+    });
+    connection.on('MemberAdded', (member: BoardMemberResponse) => {
+      this.memberAddedSubject.next([member]);
+    });
+    connection.on('BoardUpdated', (board: BoardResponse) => {
+      this.boardUpdatedSubject.next([board]);
+    });
+    connection.on('BoardDeleted', (boardId: number) => {
+      this.boardDeletedSubject.next([boardId]);
+    });
   }
 
   private invokeIfConnected$(method: 'JoinBoard' | 'LeaveBoard', boardId: number): Observable<void> {
