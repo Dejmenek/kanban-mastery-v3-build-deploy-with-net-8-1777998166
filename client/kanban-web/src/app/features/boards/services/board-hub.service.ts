@@ -48,11 +48,18 @@ function connectHub$(
 
     registerHandlers(connection);
 
-function hubEvent$<T extends unknown[]>(connection: signalR.HubConnection, methodName: string): Observable<T> {
-  return fromEventPattern<T>(
-    (handler) => connection.on(methodName, handler),
-    (handler) => connection.off(methodName, handler),
-    (...args: unknown[]) => args as T,
+    const unexpectedClose$ = fromEventPattern<Error | undefined>((handler) => connection.onclose(handler)).pipe(
+      switchMap((error) => (error ? throwError(() => error) : NEVER)),
+  );
+
+    return from(connection.start()).pipe(
+      switchMap(() => merge(of(connection), unexpectedClose$)),
+      finalize(() => void connection.stop()),
+    );
+  }).pipe(
+    retry({
+      delay: (_error, attempt) => timer(Math.min(RECONNECT_BASE_DELAY_MS * 2 ** (attempt - 1), RECONNECT_MAX_DELAY_MS)),
+    }),
   );
 }
 
