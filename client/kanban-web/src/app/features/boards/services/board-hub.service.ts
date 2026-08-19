@@ -35,16 +35,18 @@ export interface CardCreatedEvent {
   card: CardResponse;
 }
 
-function connectHub$(url: string, accessTokenFactory: () => string): Observable<signalR.HubConnection> {
+function connectHub$(
+  url: string,
+  accessTokenFactory: () => string,
+  registerHandlers: (connection: signalR.HubConnection) => void,
+): Observable<signalR.HubConnection> {
   return defer(() => {
     const connection = new signalR.HubConnectionBuilder()
       .withUrl(url, { accessTokenFactory, withCredentials: false })
       .withAutomaticReconnect()
       .build();
 
-    return concat(from(connection.start()).pipe(map(() => connection)), NEVER).pipe(finalize(() => void connection.stop()));
-  });
-}
+    registerHandlers(connection);
 
 function hubEvent$<T extends unknown[]>(connection: signalR.HubConnection, methodName: string): Observable<T> {
   return fromEventPattern<T>(
@@ -76,7 +78,9 @@ export class BoardHubService {
     distinctUntilChanged(),
     switchMap((shouldConnect) =>
       shouldConnect
-        ? connectHub$(`${environment.apiUrl}/hubs/board`, () => this.tokenService.getToken() ?? '').pipe(catchError(() => EMPTY))
+        ? connectHub$(`${environment.apiUrl}/hubs/board`, () => this.tokenService.getToken() ?? '', (connection) =>
+            this.registerHandlers(connection),
+          ).pipe(catchError(() => EMPTY))
         : of(null),
     ),
     shareReplay(1),
@@ -147,6 +151,19 @@ export class BoardHubService {
   leaveBoard$(boardId: number): Observable<void> {
     if (this.currentBoardId === boardId) this.currentBoardId = null;
     return this.invoke$('LeaveBoard', boardId);
+  private registerHandlers(connection: signalR.HubConnection): void {
+    connection.on('CardCreated', (columnId: number, card: CardResponse) => this.cardCreatedSubject.next([columnId, card]));
+    connection.on('CardUpdated', (card: CardResponse) => this.cardUpdatedSubject.next([card]));
+    connection.on('CardAssigned', (card: CardResponse) => this.cardAssignedSubject.next([card]));
+    connection.on('CardMoved', (moveCard: MoveCardResponse) => this.cardMovedSubject.next([moveCard]));
+    connection.on('CardDeleted', (cardId: number) => this.cardDeletedSubject.next([cardId]));
+    connection.on('ColumnCreated', (column: ColumnResponse) => this.columnCreatedSubject.next([column]));
+    connection.on('ColumnUpdated', (column: ColumnResponse) => this.columnUpdatedSubject.next([column]));
+    connection.on('ColumnMoved', (moveColumn: MoveColumnResponse) => this.columnMovedSubject.next([moveColumn]));
+    connection.on('ColumnDeleted', (columnId: number) => this.columnDeletedSubject.next([columnId]));
+    connection.on('MemberAdded', (member: BoardMemberResponse) => this.memberAddedSubject.next([member]));
+    connection.on('BoardUpdated', (board: BoardResponse) => this.boardUpdatedSubject.next([board]));
+    connection.on('BoardDeleted', (boardId: number) => this.boardDeletedSubject.next([boardId]));
   }
 
   private event$<T extends unknown[]>(methodName: string): Observable<T> {
