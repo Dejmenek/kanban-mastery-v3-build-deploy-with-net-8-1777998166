@@ -5,6 +5,7 @@ import {
   EMPTY,
   NEVER,
   Observable,
+  Subject,
   catchError,
   concat,
   defer,
@@ -79,6 +80,19 @@ export class BoardHubService {
   private currentBoardId: number | null = null;
   private wantConnection = signal(false);
 
+  private readonly cardCreatedSubject = new Subject<[columnId: number, card: CardResponse]>();
+  private readonly cardUpdatedSubject = new Subject<[card: CardResponse]>();
+  private readonly cardAssignedSubject = new Subject<[card: CardResponse]>();
+  private readonly cardMovedSubject = new Subject<[moveCard: MoveCardResponse]>();
+  private readonly cardDeletedSubject = new Subject<[cardId: number]>();
+  private readonly columnCreatedSubject = new Subject<[column: ColumnResponse]>();
+  private readonly columnUpdatedSubject = new Subject<[column: ColumnResponse]>();
+  private readonly columnMovedSubject = new Subject<[moveColumn: MoveColumnResponse]>();
+  private readonly columnDeletedSubject = new Subject<[columnId: number]>();
+  private readonly memberAddedSubject = new Subject<[member: BoardMemberResponse]>();
+  private readonly boardUpdatedSubject = new Subject<[board: BoardResponse]>();
+  private readonly boardDeletedSubject = new Subject<[boardId: number]>();
+
   private connection$: Observable<signalR.HubConnection | null> = toObservable(
     computed(() => this.authService.loggedIn() && this.wantConnection()),
   ).pipe(
@@ -109,20 +123,18 @@ export class BoardHubService {
     return this.currentConnection()?.connectionId ?? null;
   }
 
-  readonly cardCreated$ = this.event$<[columnId: number, card: CardResponse]>('CardCreated').pipe(
-    map(([columnId, card]): CardCreatedEvent => ({ columnId, card })),
-  );
-  readonly cardUpdated$ = this.event$<[card: CardResponse]>('CardUpdated').pipe(map(([card]) => card));
-  readonly cardAssigned$ = this.event$<[card: CardResponse]>('CardAssigned').pipe(map(([card]) => card));
-  readonly cardMoved$ = this.event$<[moveCard: MoveCardResponse]>('CardMoved').pipe(map(([moveCard]) => moveCard));
-  readonly cardDeleted$ = this.event$<[cardId: number]>('CardDeleted').pipe(map(([cardId]) => cardId));
-  readonly columnCreated$ = this.event$<[column: ColumnResponse]>('ColumnCreated').pipe(map(([column]) => column));
-  readonly columnUpdated$ = this.event$<[column: ColumnResponse]>('ColumnUpdated').pipe(map(([column]) => column));
-  readonly columnMoved$ = this.event$<[moveColumn: MoveColumnResponse]>('ColumnMoved').pipe(map(([moveColumn]) => moveColumn));
-  readonly columnDeleted$ = this.event$<[columnId: number]>('ColumnDeleted').pipe(map(([columnId]) => columnId));
-  readonly memberAdded$ = this.event$<[member: BoardMemberResponse]>('MemberAdded').pipe(map(([member]) => member));
-  readonly boardUpdated$ = this.event$<[board: BoardResponse]>('BoardUpdated').pipe(map(([board]) => board));
-  readonly boardDeleted$ = this.event$<[boardId: number]>('BoardDeleted').pipe(map(([boardId]) => boardId));
+  readonly cardCreated$ = this.cardCreatedSubject.pipe(map(([columnId, card]): CardCreatedEvent => ({ columnId, card })));
+  readonly cardUpdated$ = this.cardUpdatedSubject.pipe(map(([card]) => card));
+  readonly cardAssigned$ = this.cardAssignedSubject.pipe(map(([card]) => card));
+  readonly cardMoved$ = this.cardMovedSubject.pipe(map(([moveCard]) => moveCard));
+  readonly cardDeleted$ = this.cardDeletedSubject.pipe(map(([cardId]) => cardId));
+  readonly columnCreated$ = this.columnCreatedSubject.pipe(map(([column]) => column));
+  readonly columnUpdated$ = this.columnUpdatedSubject.pipe(map(([column]) => column));
+  readonly columnMoved$ = this.columnMovedSubject.pipe(map(([moveColumn]) => moveColumn));
+  readonly columnDeleted$ = this.columnDeletedSubject.pipe(map(([columnId]) => columnId));
+  readonly memberAdded$ = this.memberAddedSubject.pipe(map(([member]) => member));
+  readonly boardUpdated$ = this.boardUpdatedSubject.pipe(map(([board]) => board));
+  readonly boardDeleted$ = this.boardDeletedSubject.pipe(map(([boardId]) => boardId));
 
   readonly reconnected$: Observable<void> = this.connection$.pipe(
     switchMap((connection) => (connection ? hubLifecycle$(connection) : EMPTY)),
