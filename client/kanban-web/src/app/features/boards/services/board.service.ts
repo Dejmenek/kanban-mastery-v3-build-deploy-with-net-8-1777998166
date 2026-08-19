@@ -287,8 +287,8 @@ export class BoardService {
     return this.columns().find((column) => column.cards === cards)?.id ?? null;
   }
 
-  private reconcile(affectedColumns: readonly AffectedColumnResponse[], generations: Map<number, number>): void {
-    const currentAffected = affectedColumns.filter((a) => this.isCurrent(a.columnId, generations.get(a.columnId)));
+  private reconcile(affectedColumns: readonly AffectedColumnResponse[], generations?: Map<number, number>): void {
+    const currentAffected = generations ? affectedColumns.filter((a) => this.isCurrent(a.columnId, generations.get(a.columnId))) : affectedColumns;
     if (currentAffected.length === 0) return;
 
     const cardsById = new Map<number, CardResponse>();
@@ -412,8 +412,7 @@ export class BoardService {
   }
 
   private applyCardMoved(move: MoveCardResponse): void {
-    const generations = new Map(move.affectedColumns.map((a) => [a.columnId, this.columnGeneration.get(a.columnId) ?? 0]));
-    this.reconcile(move.affectedColumns, generations);
+    this.reconcile(move.affectedColumns);
   }
 
   private applyColumnMoved(move: MoveColumnResponse): void {
