@@ -9,21 +9,21 @@ export class CardService {
 
   create(boardId: number, request: CreateCardRequest): Observable<CardResponse> {
     return this.api
-      .post<CreateCardRequest, CardResponse>(`/api/boards/${boardId}/cards`, request);
+      .post<CreateCardRequest, CardResponse>(`/api/v1/boards/${boardId}/cards`, request);
   }
 
   delete(boardId: number, cardId: number): Observable<void> {
     return this.api
-      .delete<void>(`/api/boards/${boardId}/cards/${cardId}`);
+      .delete<void>(`/api/v1/boards/${boardId}/cards/${cardId}`);
   }
 
   move(boardId: number, cardId: number, request: MoveCardRequest): Observable<MoveCardResponse> {
     return this.api
-      .put<MoveCardRequest, MoveCardResponse>(`/api/boards/${boardId}/cards/${cardId}/position`, request);
+      .put<MoveCardRequest, MoveCardResponse>(`/api/v1/boards/${boardId}/cards/${cardId}/position`, request);
   }
 
   assign(boardId: number, cardId: number, request: AssignCardRequest): Observable<CardResponse> {
     return this.api
-      .put<AssignCardRequest, CardResponse>(`/api/boards/${boardId}/cards/${cardId}/assign`, request);
+      .put<AssignCardRequest, CardResponse>(`/api/v1/boards/${boardId}/cards/${cardId}/assign`, request);
   }
 }

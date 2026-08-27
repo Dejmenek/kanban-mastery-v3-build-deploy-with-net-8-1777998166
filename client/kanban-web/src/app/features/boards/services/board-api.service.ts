@@ -9,26 +9,26 @@ export class BoardApiService {
 
   getAll(): Observable<BoardSummaryResponse[]> {
     return this.api
-      .get<BoardSummaryResponse[]>('/api/boards');
+      .get<BoardSummaryResponse[]>('/api/v1/boards');
   }
 
   getById(boardId: number): Observable<BoardDetailsResponse> {
     return this.api
-      .get<BoardDetailsResponse>(`/api/boards/${boardId}`);
+      .get<BoardDetailsResponse>(`/api/v1/boards/${boardId}`);
   }
 
   createBoard(request: CreateBoardRequest): Observable<BoardSummaryResponse> {
     return this.api
-      .post<CreateBoardRequest, BoardSummaryResponse>(`/api/boards`, request);
+      .post<CreateBoardRequest, BoardSummaryResponse>(`/api/v1/boards`, request);
   }
 
   deleteBoard(boardId: number): Observable<void> {
     return this.api
-      .delete<void>(`/api/boards/${boardId}`);
+      .delete<void>(`/api/v1/boards/${boardId}`);
   }
 
   updateBoard(boardId: number, request: UpdateBoardRequest): Observable<BoardResponse> {
     return this.api
-      .put<UpdateBoardRequest, BoardResponse>(`/api/boards/${boardId}`, request);
+      .put<UpdateBoardRequest, BoardResponse>(`/api/v1/boards/${boardId}`, request);
   }
 }

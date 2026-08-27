@@ -9,11 +9,11 @@ export class MemberService {
 
   add(boardId: number, request: AddBoardMemberRequest): Observable<BoardMemberResponse> {
     return this.api
-      .post<AddBoardMemberRequest, BoardMemberResponse>(`/api/boards/${boardId}/members`, request);
+      .post<AddBoardMemberRequest, BoardMemberResponse>(`/api/v1/boards/${boardId}/members`, request);
   }
 
   search(boardId: number, query: string): Observable<BoardMemberResponse[]> {
     return this.api
-      .get<BoardMemberResponse[]>(`/api/boards/${boardId}/members/search`, { params: { query } });
+      .get<BoardMemberResponse[]>(`/api/v1/boards/${boardId}/members/search`, { params: { query } });
   }
 }

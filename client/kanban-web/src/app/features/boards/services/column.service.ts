@@ -9,21 +9,21 @@ export class ColumnService {
 
   create(boardId: number, request: CreateColumnRequest): Observable<ColumnResponse> {
     return this.api
-      .post<CreateColumnRequest, ColumnResponse>(`/api/boards/${boardId}/columns`, request);
+      .post<CreateColumnRequest, ColumnResponse>(`/api/v1/boards/${boardId}/columns`, request);
   }
 
   delete(boardId: number, columnId: number): Observable<void> {
     return this.api
-      .delete<void>(`/api/boards/${boardId}/columns/${columnId}`);
+      .delete<void>(`/api/v1/boards/${boardId}/columns/${columnId}`);
   }
 
   update(boardId: number, columnId: number, request: UpdateColumnRequest): Observable<ColumnResponse> {
     return this.api
-      .put<UpdateColumnRequest, ColumnResponse>(`/api/boards/${boardId}/columns/${columnId}`, request);
+      .put<UpdateColumnRequest, ColumnResponse>(`/api/v1/boards/${boardId}/columns/${columnId}`, request);
   }
 
   move(boardId: number, columnId: number, request: MoveColumnRequest): Observable<MoveColumnResponse> {
     return this.api
-      .put<MoveColumnRequest, MoveColumnResponse>(`/api/boards/${boardId}/columns/${columnId}/position`, request);
+      .put<MoveColumnRequest, MoveColumnResponse>(`/api/v1/boards/${boardId}/columns/${columnId}/position`, request);
   }
 }
