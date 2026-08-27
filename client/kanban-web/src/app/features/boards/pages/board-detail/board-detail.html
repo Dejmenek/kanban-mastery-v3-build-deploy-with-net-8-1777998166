@@ -3,14 +3,14 @@
     @if (!isEditingBoard()) {
       <div>
         <div class="board-detail-title-row">
-          <h1 class="board-detail-title">{{ boardService.boardName() }}</h1>
+          <h1 class="board-detail-title">{{ boardFacade.boardName() }}</h1>
           <app-connection-status />
-          @if (boardService.isOwner()) {
-            <button type="button" class="btn-secondary btn-sm" [disabled]="boardService.isOffline()" (click)="onEditBoard()">Edit</button>
+          @if (boardFacade.isOwner()) {
+            <button type="button" class="btn-secondary btn-sm" [disabled]="boardFacade.isOffline()" (click)="onEditBoard()">Edit</button>
           }
         </div>
-        @if (boardService.boardDescription()) {
-          <p class="board-detail-description">{{ boardService.boardDescription() }}</p>
+        @if (boardFacade.boardDescription()) {
+          <p class="board-detail-description">{{ boardFacade.boardDescription() }}</p>
         }
       </div>
     } @else {
@@ -30,7 +30,7 @@
         <app-error-message [message]="editErrorMessage()" />
         <div class="form-actions">
           <button type="button" class="btn-secondary btn-sm" [disabled]="isSubmittingEdit()" (click)="onEditBoardCancel()">Cancel</button>
-          <button type="submit" class="btn-primary btn-sm" [disabled]="!editBoardForm.valid || isSubmittingEdit() || boardService.isOffline()">
+          <button type="submit" class="btn-primary btn-sm" [disabled]="!editBoardForm.valid || isSubmittingEdit() || boardFacade.isOffline()">
             {{ isSubmittingEdit() ? 'Saving...' : 'Save' }}
           </button>
         </div>
@@ -39,44 +39,44 @@
 
     <div class="board-detail-members-row">
       <div class="board-detail-members" aria-label="Board members">
-        @for (member of boardService.members(); track member.memberId) {
+        @for (member of boardFacade.members(); track member.memberId) {
           <div class="board-member">
             <app-avatar [name]="member.userName" [email]="member.email" />
             <span class="board-member-name">{{ member.userName ?? member.email ?? 'Unknown' }}</span>
           </div>
         }
       </div>
-      @if (boardService.isOwner()) {
-        <button class="btn-primary btn-sm" [disabled]="boardService.isOffline()" (click)="openDialog()">Invite</button>
+      @if (boardFacade.isOwner()) {
+        <button class="btn-primary btn-sm" [disabled]="boardFacade.isOffline()" (click)="openDialog()">Invite</button>
       }
     </div>
   </header>
 
-  @if (boardService.isResyncing()) {
+  @if (boardFacade.isResyncing()) {
     <div class="board-detail-resync-banner" role="status" aria-live="polite">
       <span class="board-detail-resync-bar" aria-hidden="true"></span>
       Syncing latest changes…
     </div>
   }
 
-  <app-error-message [message]="boardService.moveError()" />
-  <app-error-message [message]="boardService.deleteCardError()" />
-  <app-error-message [message]="boardService.deleteColumnError()" />
-  <app-error-message [message]="boardService.syncError()" />
+  <app-error-message [message]="boardFacade.moveError()" />
+  <app-error-message [message]="boardFacade.deleteCardError()" />
+  <app-error-message [message]="boardFacade.deleteColumnError()" />
+  <app-error-message [message]="boardFacade.syncError()" />
 
   <div class="board-columns-dnd"
        cdkDropList
        cdkDropListOrientation="horizontal"
-       [cdkDropListData]="boardService.columns()"
+       [cdkDropListData]="boardFacade.columns()"
        (cdkDropListDropped)="onColumnDropped($event)">
     <div class="board-columns" cdkDropListGroup>
-      @for (column of boardService.columns(); track column.id) {
-      <app-board-column cdkDrag [cdkDragDisabled]="boardService.isOffline()" [cdkDragData]="column" [column]="column" (cdkDragStarted)="onColumnDragStarted()" />
+      @for (column of boardFacade.columns(); track column.id) {
+      <app-board-column cdkDrag [cdkDragDisabled]="boardFacade.isOffline()" [cdkDragData]="column" [column]="column" (cdkDragStarted)="onColumnDragStarted()" />
       } @empty {
       <p class="board-detail-empty">This board has no columns yet.</p>
       }
       @if (!isCreatingColumn()) {
-      <button type="button" class="board-add-column-btn" [disabled]="boardService.isOffline()" (click)="isCreatingColumn.set(true)">+ Create column</button>
+      <button type="button" class="board-add-column-btn" [disabled]="boardFacade.isOffline()" (click)="isCreatingColumn.set(true)">+ Create column</button>
       } @else {
       <form class="form board-add-column-form" [formGroup]="createColumnForm" (ngSubmit)="onCreateColumnSubmit()" novalidate>
         <div class="form-field">
@@ -96,7 +96,7 @@
 
         <div class="form-actions">
           <button type="button" class="btn-secondary btn-sm" [disabled]="isSubmittingCreateColumn()" (click)="onCreateColumnCancel()">Cancel</button>
-          <button type="submit" class="btn-primary btn-sm" [disabled]="!createColumnForm.valid || isSubmittingCreateColumn() || boardService.isOffline()">
+          <button type="submit" class="btn-primary btn-sm" [disabled]="!createColumnForm.valid || isSubmittingCreateColumn() || boardFacade.isOffline()">
             {{ isSubmittingCreateColumn() ? 'Creating...' : 'Create column' }}
           </button>
         </div>
