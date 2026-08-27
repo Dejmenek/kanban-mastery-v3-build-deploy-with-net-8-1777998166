@@ -46,11 +46,11 @@ public class RateLimitingTests(IntegrationTestWebAppFactory<Program> factory) : 
         // Act
         for (var i = 0; i < TokenLimit; i++)
         {
-            var response = await client.GetAsync("/api/users/me", TestContext.Current.CancellationToken);
+            var response = await client.GetAsync("/api/v1/users/me", TestContext.Current.CancellationToken);
             Assert.NotEqual(HttpStatusCode.TooManyRequests, response.StatusCode);
         }
 
-        var rejectedResponse = await client.GetAsync("/api/users/me", TestContext.Current.CancellationToken);
+        var rejectedResponse = await client.GetAsync("/api/v1/users/me", TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal(HttpStatusCode.TooManyRequests, rejectedResponse.StatusCode);

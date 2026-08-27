@@ -16,7 +16,7 @@ public class BoardEndpointsTests(IntegrationTestWebAppFactory<Program> factory) 
         var user = await CreateUserAndAuthenticateAsync("test@example.com", "Test123!");
 
         // Act
-        var response = await Client.PostAsJsonAsync("/api/boards", new { Name = boardName }, TestContext.Current.CancellationToken);
+        var response = await Client.PostAsJsonAsync("/api/v1/boards", new { Name = boardName }, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
@@ -47,7 +47,7 @@ public class BoardEndpointsTests(IntegrationTestWebAppFactory<Program> factory) 
             context, new Card { ColumnId = column.Id, Title = "Test Card", Position = 0 }));
 
         // Act
-        var response = await Client.GetAsync($"/api/boards/{board.Id}", TestContext.Current.CancellationToken);
+        var response = await Client.GetAsync($"/api/v1/boards/{board.Id}", TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -86,7 +86,7 @@ public class BoardEndpointsTests(IntegrationTestWebAppFactory<Program> factory) 
             context, new BoardMember { BoardId = board.Id, MemberId = member.Id, Role = Role.Member }));
 
         // Act
-        var response = await Client.GetAsync($"/api/boards/{board.Id}", TestContext.Current.CancellationToken);
+        var response = await Client.GetAsync($"/api/v1/boards/{board.Id}", TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -122,7 +122,7 @@ public class BoardEndpointsTests(IntegrationTestWebAppFactory<Program> factory) 
         await AuthenticateAsAsync(memberEmail, memberPassword);
 
         // Act
-        var response = await Client.GetAsync($"/api/boards/{board.Id}", TestContext.Current.CancellationToken);
+        var response = await Client.GetAsync($"/api/v1/boards/{board.Id}", TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -149,7 +149,7 @@ public class BoardEndpointsTests(IntegrationTestWebAppFactory<Program> factory) 
         await AuthenticateAsAsync(nonMemberEmail, nonMemberPassword);
 
         // Act
-        var response = await Client.GetAsync($"/api/boards/{board.Id}", TestContext.Current.CancellationToken);
+        var response = await Client.GetAsync($"/api/v1/boards/{board.Id}", TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
@@ -165,7 +165,7 @@ public class BoardEndpointsTests(IntegrationTestWebAppFactory<Program> factory) 
         var request = new UpdateBoardRequest("Updated Name", "Updated description");
 
         // Act
-        var response = await Client.PutAsJsonAsync($"/api/boards/{board.Id}", request, TestContext.Current.CancellationToken);
+        var response = await Client.PutAsJsonAsync($"/api/v1/boards/{board.Id}", request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -193,7 +193,7 @@ public class BoardEndpointsTests(IntegrationTestWebAppFactory<Program> factory) 
 
         // Act
         var response = await Client.PutAsJsonAsync(
-            $"/api/boards/{board.Id}", new UpdateBoardRequest("Hacked Name", null), TestContext.Current.CancellationToken);
+            $"/api/v1/boards/{board.Id}", new UpdateBoardRequest("Hacked Name", null), TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
@@ -214,7 +214,7 @@ public class BoardEndpointsTests(IntegrationTestWebAppFactory<Program> factory) 
 
         // Act
         var response = await Client.PutAsJsonAsync(
-            $"/api/boards/{board.Id}", new UpdateBoardRequest("Hacked Name", null), TestContext.Current.CancellationToken);
+            $"/api/v1/boards/{board.Id}", new UpdateBoardRequest("Hacked Name", null), TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
@@ -228,7 +228,7 @@ public class BoardEndpointsTests(IntegrationTestWebAppFactory<Program> factory) 
         var board = await UseDbContextAsync(context => BoardTestHelper.SeedBoardAsync(context, owner.Id));
 
         // Act
-        var response = await Client.DeleteAsync($"/api/boards/{board.Id}", TestContext.Current.CancellationToken);
+        var response = await Client.DeleteAsync($"/api/v1/boards/{board.Id}", TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
@@ -250,7 +250,7 @@ public class BoardEndpointsTests(IntegrationTestWebAppFactory<Program> factory) 
         await AuthenticateAsAsync(memberEmail, memberPassword);
 
         // Act
-        var response = await Client.DeleteAsync($"/api/boards/{board.Id}", TestContext.Current.CancellationToken);
+        var response = await Client.DeleteAsync($"/api/v1/boards/{board.Id}", TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
@@ -270,7 +270,7 @@ public class BoardEndpointsTests(IntegrationTestWebAppFactory<Program> factory) 
         await AuthenticateAsAsync(nonMemberEmail, nonMemberPassword);
 
         // Act
-        var response = await Client.DeleteAsync($"/api/boards/{board.Id}", TestContext.Current.CancellationToken);
+        var response = await Client.DeleteAsync($"/api/v1/boards/{board.Id}", TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
