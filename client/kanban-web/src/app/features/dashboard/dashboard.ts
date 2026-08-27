@@ -1,6 +1,6 @@
 import { Component, inject, linkedSignal, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { BoardService } from '../boards/services/board.service';
+import { BoardApiService } from '../boards/services/board-api.service';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { FormGroup, FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CreateBoardRequest } from '../boards/models/board.models';
@@ -19,7 +19,7 @@ import { ErrorMessage } from '../../shared/components/error-message/error-messag
 })
 export class Dashboard {
   dialog = inject(Dialog);
-  private boardService = inject(BoardService);
+  private boardApiService = inject(BoardApiService);
   protected isCreating = signal(false);
   protected errorMessage = signal<string | null>(null);
   protected isSubmitting = signal(false);
@@ -29,7 +29,7 @@ export class Dashboard {
   });
 
   protected boardsResource = rxResource({
-    stream: () => this.boardService.getAll()
+    stream: () => this.boardApiService.getAll()
   });
 
   protected boards = linkedSignal(() => this.boardsResource.value() ?? []);
@@ -51,7 +51,7 @@ export class Dashboard {
       description: this.createBoardForm.value.description || null,
     };
 
-    this.boardService
+    this.boardApiService
       .createBoard(request)
       .pipe(finalize(() => this.isSubmitting.set(false)))
       .subscribe({
@@ -87,7 +87,7 @@ export class Dashboard {
   private deleteBoard(boardId: number) {
     this.deleteErrorMessage.set(null);
 
-    this.boardService
+    this.boardApiService
       .deleteBoard(boardId)
       .pipe(finalize(() => this.deletingBoardId.set(null)))
       .subscribe({
