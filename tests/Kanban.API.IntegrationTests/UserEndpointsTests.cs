@@ -16,7 +16,7 @@ public class UserEndpointsTests(IntegrationTestWebAppFactory<Program> factory) :
         var user = await CreateUserAndAuthenticateAsync("test@example.com", "Test123!");
 
         // Act
-        var response = await Client.GetAsync("/api/users/me", TestContext.Current.CancellationToken);
+        var response = await Client.GetAsync("/api/v1/users/me", TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -32,7 +32,7 @@ public class UserEndpointsTests(IntegrationTestWebAppFactory<Program> factory) :
     public async Task GetCurrentUserProfile_WithInvalidToken_ReturnsUnauthorized()
     {
         // Act
-        var response = await Client.GetAsync("/api/users/me", TestContext.Current.CancellationToken);
+        var response = await Client.GetAsync("/api/v1/users/me", TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
@@ -51,7 +51,7 @@ public class UserEndpointsTests(IntegrationTestWebAppFactory<Program> factory) :
         }
 
         // Act
-        var response = await Client.GetAsync("/api/users/me", TestContext.Current.CancellationToken);
+        var response = await Client.GetAsync("/api/v1/users/me", TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);

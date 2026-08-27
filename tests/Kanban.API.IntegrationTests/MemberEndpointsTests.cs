@@ -21,7 +21,7 @@ public class MemberEndpointsTests(IntegrationTestWebAppFactory<Program> factory)
 
         // Act
         var response = await Client.PostAsJsonAsync(
-            $"/api/boards/{board.Id}/members",
+            $"/api/v1/boards/{board.Id}/members",
             new { Email = memberEmail },
             TestContext.Current.CancellationToken);
 
@@ -59,7 +59,7 @@ public class MemberEndpointsTests(IntegrationTestWebAppFactory<Program> factory)
 
         // Act
         var response = await Client.PostAsJsonAsync(
-            $"/api/boards/{board.Id}/members",
+            $"/api/v1/boards/{board.Id}/members",
             new { Email = candidateEmail },
             TestContext.Current.CancellationToken);
 
@@ -76,7 +76,7 @@ public class MemberEndpointsTests(IntegrationTestWebAppFactory<Program> factory)
 
         // Act
         var response = await Client.PostAsJsonAsync(
-            $"/api/boards/{board.Id}/members",
+            $"/api/v1/boards/{board.Id}/members",
             new { },
             TestContext.Current.CancellationToken);
 
@@ -93,7 +93,7 @@ public class MemberEndpointsTests(IntegrationTestWebAppFactory<Program> factory)
 
         // Act
         var response = await Client.PostAsJsonAsync(
-            $"/api/boards/{board.Id}/members",
+            $"/api/v1/boards/{board.Id}/members",
             new { Email = "doesnotexist@example.com" },
             TestContext.Current.CancellationToken);
 
@@ -115,7 +115,7 @@ public class MemberEndpointsTests(IntegrationTestWebAppFactory<Program> factory)
 
         // Act
         var response = await Client.PostAsJsonAsync(
-            $"/api/boards/{board.Id}/members",
+            $"/api/v1/boards/{board.Id}/members",
             new { Email = memberEmail },
             TestContext.Current.CancellationToken);
 
@@ -135,7 +135,7 @@ public class MemberEndpointsTests(IntegrationTestWebAppFactory<Program> factory)
             context, new BoardMember { BoardId = board.Id, MemberId = member.Id, Role = Role.Member }));
 
         // Act
-        var response = await Client.GetAsync($"/api/boards/{board.Id}/members", TestContext.Current.CancellationToken);
+        var response = await Client.GetAsync($"/api/v1/boards/{board.Id}/members", TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -157,7 +157,7 @@ public class MemberEndpointsTests(IntegrationTestWebAppFactory<Program> factory)
         Client.DefaultRequestHeaders.Authorization = null;
 
         // Act
-        var response = await Client.GetAsync($"/api/boards/{board.Id}/members", TestContext.Current.CancellationToken);
+        var response = await Client.GetAsync($"/api/v1/boards/{board.Id}/members", TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
@@ -177,7 +177,7 @@ public class MemberEndpointsTests(IntegrationTestWebAppFactory<Program> factory)
         await AuthenticateAsAsync(nonMemberEmail, nonMemberPassword);
 
         // Act
-        var response = await Client.GetAsync($"/api/boards/{board.Id}/members", TestContext.Current.CancellationToken);
+        var response = await Client.GetAsync($"/api/v1/boards/{board.Id}/members", TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
@@ -190,7 +190,7 @@ public class MemberEndpointsTests(IntegrationTestWebAppFactory<Program> factory)
         await CreateUserAndAuthenticateAsync("owner@example.com", "Test123!");
 
         // Act
-        var response = await Client.GetAsync("/api/boards/999999/members", TestContext.Current.CancellationToken);
+        var response = await Client.GetAsync("/api/v1/boards/999999/members", TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
@@ -205,7 +205,7 @@ public class MemberEndpointsTests(IntegrationTestWebAppFactory<Program> factory)
 
         // Act
         var response = await Client.GetAsync(
-            $"/api/boards/{board.Id}/members?cursor=not-valid-base64!!!", TestContext.Current.CancellationToken);
+            $"/api/v1/boards/{board.Id}/members?cursor=not-valid-base64!!!", TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
@@ -230,7 +230,7 @@ public class MemberEndpointsTests(IntegrationTestWebAppFactory<Program> factory)
         string? cursor = null;
         do
         {
-            var url = $"/api/boards/{board.Id}/members?pageSize=2" + (cursor is null ? "" : $"&cursor={Uri.EscapeDataString(cursor)}");
+            var url = $"/api/v1/boards/{board.Id}/members?pageSize=2" + (cursor is null ? "" : $"&cursor={Uri.EscapeDataString(cursor)}");
             var response = await Client.GetAsync(url, TestContext.Current.CancellationToken);
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
@@ -258,7 +258,7 @@ public class MemberEndpointsTests(IntegrationTestWebAppFactory<Program> factory)
             context, new BoardMember { BoardId = board.Id, MemberId = member.Id, Role = Role.Member }));
 
         // Act
-        var response = await Client.GetAsync($"/api/boards/{board.Id}/members/search?query=example.com", TestContext.Current.CancellationToken);
+        var response = await Client.GetAsync($"/api/v1/boards/{board.Id}/members/search?query=example.com", TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -279,7 +279,7 @@ public class MemberEndpointsTests(IntegrationTestWebAppFactory<Program> factory)
         Client.DefaultRequestHeaders.Authorization = null;
 
         // Act
-        var response = await Client.GetAsync($"/api/boards/{board.Id}/members/search?query=owner", TestContext.Current.CancellationToken);
+        var response = await Client.GetAsync($"/api/v1/boards/{board.Id}/members/search?query=owner", TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
@@ -299,7 +299,7 @@ public class MemberEndpointsTests(IntegrationTestWebAppFactory<Program> factory)
         await AuthenticateAsAsync(nonMemberEmail, nonMemberPassword);
 
         // Act
-        var response = await Client.GetAsync($"/api/boards/{board.Id}/members/search?query=owner", TestContext.Current.CancellationToken);
+        var response = await Client.GetAsync($"/api/v1/boards/{board.Id}/members/search?query=owner", TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
@@ -312,7 +312,7 @@ public class MemberEndpointsTests(IntegrationTestWebAppFactory<Program> factory)
         await CreateUserAndAuthenticateAsync("owner@example.com", "Test123!");
 
         // Act
-        var response = await Client.GetAsync("/api/boards/999999/members/search?query=owner", TestContext.Current.CancellationToken);
+        var response = await Client.GetAsync("/api/v1/boards/999999/members/search?query=owner", TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
@@ -326,7 +326,7 @@ public class MemberEndpointsTests(IntegrationTestWebAppFactory<Program> factory)
         var board = await UseDbContextAsync(context => BoardTestHelper.SeedBoardAsync(context, owner.Id));
 
         // Act
-        var response = await Client.GetAsync($"/api/boards/{board.Id}/members/search", TestContext.Current.CancellationToken);
+        var response = await Client.GetAsync($"/api/v1/boards/{board.Id}/members/search", TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);

@@ -21,7 +21,7 @@ public class CardEndpointsTests(IntegrationTestWebAppFactory<Program> factory)
 
         // Act
         var response = await Client.PostAsJsonAsync(
-            $"/api/boards/{board.Id}/cards",
+            $"/api/v1/boards/{board.Id}/cards",
             request,
             TestContext.Current.CancellationToken);
 
@@ -54,7 +54,7 @@ public class CardEndpointsTests(IntegrationTestWebAppFactory<Program> factory)
 
         // Act
         var response = await Client.PostAsJsonAsync(
-            $"/api/boards/{board.Id}/cards",
+            $"/api/v1/boards/{board.Id}/cards",
             request,
             TestContext.Current.CancellationToken);
 
@@ -85,7 +85,7 @@ public class CardEndpointsTests(IntegrationTestWebAppFactory<Program> factory)
 
         // Act
         var response = await Client.PostAsJsonAsync(
-            $"/api/boards/{board.Id}/cards",
+            $"/api/v1/boards/{board.Id}/cards",
             request,
             TestContext.Current.CancellationToken);
 
@@ -106,7 +106,7 @@ public class CardEndpointsTests(IntegrationTestWebAppFactory<Program> factory)
 
         // Act
         var response = await Client.PostAsJsonAsync(
-            $"/api/boards/{board.Id}/cards",
+            $"/api/v1/boards/{board.Id}/cards",
             request,
             TestContext.Current.CancellationToken);
 
@@ -126,7 +126,7 @@ public class CardEndpointsTests(IntegrationTestWebAppFactory<Program> factory)
 
         // Act
         var response = await Client.PostAsJsonAsync(
-            $"/api/boards/{board.Id}/cards",
+            $"/api/v1/boards/{board.Id}/cards",
             request,
             TestContext.Current.CancellationToken);
 
@@ -156,7 +156,7 @@ public class CardEndpointsTests(IntegrationTestWebAppFactory<Program> factory)
 
         // Act
         var response = await Client.PutAsJsonAsync(
-            $"/api/boards/{board.Id}/cards/{card.Id}",
+            $"/api/v1/boards/{board.Id}/cards/{card.Id}",
             request,
             TestContext.Current.CancellationToken);
 
@@ -189,7 +189,7 @@ public class CardEndpointsTests(IntegrationTestWebAppFactory<Program> factory)
 
         // Act
         var response = await Client.PutAsJsonAsync(
-            $"/api/boards/{board.Id}/cards/{card.Id}",
+            $"/api/v1/boards/{board.Id}/cards/{card.Id}",
             request,
             TestContext.Current.CancellationToken);
 
@@ -212,7 +212,7 @@ public class CardEndpointsTests(IntegrationTestWebAppFactory<Program> factory)
 
         // Act
         var response = await Client.PutAsJsonAsync(
-            $"/api/boards/{board.Id}/cards/{card.Id}",
+            $"/api/v1/boards/{board.Id}/cards/{card.Id}",
             request,
             TestContext.Current.CancellationToken);
 
@@ -234,7 +234,7 @@ public class CardEndpointsTests(IntegrationTestWebAppFactory<Program> factory)
 
         // Act
         var response = await Client.PutAsJsonAsync(
-            $"/api/boards/{board.Id}/cards/{nonExistentCardId}",
+            $"/api/v1/boards/{board.Id}/cards/{nonExistentCardId}",
             request,
             TestContext.Current.CancellationToken);
 
@@ -268,7 +268,7 @@ public class CardEndpointsTests(IntegrationTestWebAppFactory<Program> factory)
 
         // Act
         var response = await Client.PutAsJsonAsync(
-            $"/api/boards/{board.Id}/cards/{card.Id}/position",
+            $"/api/v1/boards/{board.Id}/cards/{card.Id}/position",
             request,
             TestContext.Current.CancellationToken);
 
@@ -301,7 +301,7 @@ public class CardEndpointsTests(IntegrationTestWebAppFactory<Program> factory)
 
         // Act
         var response = await Client.PutAsJsonAsync(
-            $"/api/boards/{board.Id}/cards/{card.Id}/position",
+            $"/api/v1/boards/{board.Id}/cards/{card.Id}/position",
             request,
             TestContext.Current.CancellationToken);
 
@@ -325,7 +325,7 @@ public class CardEndpointsTests(IntegrationTestWebAppFactory<Program> factory)
 
         // Act
         var response = await Client.PutAsJsonAsync(
-            $"/api/boards/{board.Id}/cards/{card.Id}/position",
+            $"/api/v1/boards/{board.Id}/cards/{card.Id}/position",
             request,
             TestContext.Current.CancellationToken);
 
@@ -348,7 +348,7 @@ public class CardEndpointsTests(IntegrationTestWebAppFactory<Program> factory)
 
         // Act
         var response = await Client.PutAsJsonAsync(
-            $"/api/boards/{board.Id}/cards/{card.Id}/position",
+            $"/api/v1/boards/{board.Id}/cards/{card.Id}/position",
             request,
             TestContext.Current.CancellationToken);
 
@@ -376,7 +376,7 @@ public class CardEndpointsTests(IntegrationTestWebAppFactory<Program> factory)
 
         // Act
         var response = await Client.DeleteAsync(
-            $"/api/boards/{board.Id}/cards/{card.Id}",
+            $"/api/v1/boards/{board.Id}/cards/{card.Id}",
             TestContext.Current.CancellationToken);
 
         // Assert
@@ -401,7 +401,7 @@ public class CardEndpointsTests(IntegrationTestWebAppFactory<Program> factory)
 
         // Act
         var response = await Client.DeleteAsync(
-            $"/api/boards/{board.Id}/cards/{card.Id}",
+            $"/api/v1/boards/{board.Id}/cards/{card.Id}",
             TestContext.Current.CancellationToken);
 
         // Assert
@@ -418,7 +418,7 @@ public class CardEndpointsTests(IntegrationTestWebAppFactory<Program> factory)
 
         // Act
         var response = await Client.DeleteAsync(
-            $"/api/boards/{board.Id}/cards/{nonExistentCardId}",
+            $"/api/v1/boards/{board.Id}/cards/{nonExistentCardId}",
             TestContext.Current.CancellationToken);
 
         // Assert
@@ -445,7 +445,7 @@ public class CardEndpointsTests(IntegrationTestWebAppFactory<Program> factory)
 
         // Act
         var response = await Client.PutAsJsonAsync(
-            $"/api/boards/{board.Id}/cards/{card.Id}/assign",
+            $"/api/v1/boards/{board.Id}/cards/{card.Id}/assign",
             request,
             TestContext.Current.CancellationToken);
 
@@ -474,7 +474,7 @@ public class CardEndpointsTests(IntegrationTestWebAppFactory<Program> factory)
 
         // Act
         var response = await Client.PutAsJsonAsync(
-            $"/api/boards/{board.Id}/cards/{card.Id}/assign",
+            $"/api/v1/boards/{board.Id}/cards/{card.Id}/assign",
             request,
             TestContext.Current.CancellationToken);
 
@@ -504,7 +504,7 @@ public class CardEndpointsTests(IntegrationTestWebAppFactory<Program> factory)
 
         // Act
         var response = await Client.PutAsJsonAsync(
-            $"/api/boards/{board.Id}/cards/{card.Id}/assign",
+            $"/api/v1/boards/{board.Id}/cards/{card.Id}/assign",
             request,
             TestContext.Current.CancellationToken);
 
@@ -524,7 +524,7 @@ public class CardEndpointsTests(IntegrationTestWebAppFactory<Program> factory)
 
         // Act
         var response = await Client.PutAsJsonAsync(
-            $"/api/boards/{board.Id}/cards/{nonExistentCardId}/assign",
+            $"/api/v1/boards/{board.Id}/cards/{nonExistentCardId}/assign",
             request,
             TestContext.Current.CancellationToken);
 

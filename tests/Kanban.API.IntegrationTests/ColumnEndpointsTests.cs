@@ -19,7 +19,7 @@ public class ColumnEndpointsTests(IntegrationTestWebAppFactory<Program> factory)
 
         // Act
         var response = await Client.PostAsJsonAsync(
-            $"/api/boards/{board.Id}/columns",
+            $"/api/v1/boards/{board.Id}/columns",
             request,
             TestContext.Current.CancellationToken);
 
@@ -48,7 +48,7 @@ public class ColumnEndpointsTests(IntegrationTestWebAppFactory<Program> factory)
 
         // Act
         var response = await Client.PostAsJsonAsync(
-            $"/api/boards/{board.Id}/columns",
+            $"/api/v1/boards/{board.Id}/columns",
             request,
             TestContext.Current.CancellationToken);
 
@@ -67,7 +67,7 @@ public class ColumnEndpointsTests(IntegrationTestWebAppFactory<Program> factory)
 
         // Act
         var response = await Client.PostAsJsonAsync(
-            $"/api/boards/{board.Id}/columns",
+            $"/api/v1/boards/{board.Id}/columns",
             request,
             TestContext.Current.CancellationToken);
 
@@ -93,7 +93,7 @@ public class ColumnEndpointsTests(IntegrationTestWebAppFactory<Program> factory)
 
         // Act
         var response = await Client.PutAsJsonAsync(
-            $"/api/boards/{board.Id}/columns/{column.Id}",
+            $"/api/v1/boards/{board.Id}/columns/{column.Id}",
             request,
             TestContext.Current.CancellationToken);
 
@@ -114,7 +114,7 @@ public class ColumnEndpointsTests(IntegrationTestWebAppFactory<Program> factory)
 
         // Act
         var response = await Client.PutAsJsonAsync(
-            $"/api/boards/{board.Id}/columns/{column.Id}",
+            $"/api/v1/boards/{board.Id}/columns/{column.Id}",
             request,
             TestContext.Current.CancellationToken);
 
@@ -134,7 +134,7 @@ public class ColumnEndpointsTests(IntegrationTestWebAppFactory<Program> factory)
 
         // Act
         var response = await Client.PutAsJsonAsync(
-            $"/api/boards/{board.Id}/columns/{nonExistentColumnId}",
+            $"/api/v1/boards/{board.Id}/columns/{nonExistentColumnId}",
             request,
             TestContext.Current.CancellationToken);
 
@@ -155,7 +155,7 @@ public class ColumnEndpointsTests(IntegrationTestWebAppFactory<Program> factory)
 
         // Act
         var response = await Client.PutAsJsonAsync(
-            $"/api/boards/{board.Id}/columns/{column.Id}",
+            $"/api/v1/boards/{board.Id}/columns/{column.Id}",
             request,
             TestContext.Current.CancellationToken);
 
@@ -184,7 +184,7 @@ public class ColumnEndpointsTests(IntegrationTestWebAppFactory<Program> factory)
 
         // Act
         var response = await Client.DeleteAsync(
-            $"/api/boards/{board.Id}/columns/{column.Id}",
+            $"/api/v1/boards/{board.Id}/columns/{column.Id}",
             TestContext.Current.CancellationToken);
 
         // Assert
@@ -201,7 +201,7 @@ public class ColumnEndpointsTests(IntegrationTestWebAppFactory<Program> factory)
 
         // Act
         var response = await Client.DeleteAsync(
-            $"/api/boards/{board.Id}/columns/{nonExistentColumnId}",
+            $"/api/v1/boards/{board.Id}/columns/{nonExistentColumnId}",
             TestContext.Current.CancellationToken);
 
         // Assert
@@ -219,7 +219,7 @@ public class ColumnEndpointsTests(IntegrationTestWebAppFactory<Program> factory)
 
         // Act
         var response = await Client.DeleteAsync(
-            $"/api/boards/{board.Id}/columns/{column.Id}",
+            $"/api/v1/boards/{board.Id}/columns/{column.Id}",
             TestContext.Current.CancellationToken);
 
         // Assert
@@ -239,7 +239,7 @@ public class ColumnEndpointsTests(IntegrationTestWebAppFactory<Program> factory)
 
         // Act
         var response = await Client.DeleteAsync(
-            $"/api/boards/{board.Id}/columns/{column.Id}",
+            $"/api/v1/boards/{board.Id}/columns/{column.Id}",
             TestContext.Current.CancellationToken);
 
         // Assert
@@ -270,7 +270,7 @@ public class ColumnEndpointsTests(IntegrationTestWebAppFactory<Program> factory)
 
         // Act
         var response = await Client.PutAsJsonAsync(
-            $"/api/boards/{board.Id}/columns/{first.Id}/position",
+            $"/api/v1/boards/{board.Id}/columns/{first.Id}/position",
             request,
             TestContext.Current.CancellationToken);
 
@@ -301,7 +301,7 @@ public class ColumnEndpointsTests(IntegrationTestWebAppFactory<Program> factory)
 
         // Act
         var response = await Client.PutAsJsonAsync(
-            $"/api/boards/{board.Id}/columns/{column.Id}/position",
+            $"/api/v1/boards/{board.Id}/columns/{column.Id}/position",
             request,
             TestContext.Current.CancellationToken);
 
