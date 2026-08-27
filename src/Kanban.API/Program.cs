@@ -1,3 +1,5 @@
+using Asp.Versioning;
+using Asp.Versioning.Builder;
 using Kanban.API.Authorization;
 using Kanban.API.Data;
 using Kanban.API.Endpoints;
@@ -144,6 +146,15 @@ else
 }
 
 builder.Services.AddProblemDetails();
+builder.Services.AddApiVersioning(options =>
+{
+    options.DefaultApiVersion = new ApiVersion(1);
+    options.ReportApiVersions = true;
+    options.AssumeDefaultVersionWhenUnspecified = true;
+    options.ApiVersionReader = ApiVersionReader.Combine(
+        new UrlSegmentApiVersionReader(),
+        new HeaderApiVersionReader("X-Api-Version"));
+});
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
@@ -173,6 +184,11 @@ builder.Services.AddSwaggerGen(options =>
 });
 
 var app = builder.Build();
+
+ApiVersionSet apiVersionSet = app.NewApiVersionSet()
+    .HasApiVersion(new ApiVersion(1))
+    .ReportApiVersions()
+    .Build();
 
 app.UseExceptionHandler();
 
@@ -205,8 +221,12 @@ app.UseAuthorization();
 app.MapIdentityApi<ApplicationUser>();
 app.MapHub<BoardHub>("/hubs/board");
 
-app.MapBoardEndpoints();
-app.MapUserEndpoints();
+RouteGroupBuilder group = app
+    .MapGroup("api/v{version:apiVersion}")
+    .WithApiVersionSet(apiVersionSet);
+
+group.MapBoardEndpoints();
+group.MapUserEndpoints();
 
 app.Run();
 
