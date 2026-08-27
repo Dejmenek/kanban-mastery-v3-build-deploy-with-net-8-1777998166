@@ -30,6 +30,24 @@ import { BoardMemberResponse, BoardResponse, CardResponse, ColumnResponse, MoveC
 
 export type HubConnectionState = 'disconnected' | 'connecting' | 'connected' | 'reconnecting';
 
+export interface ConnectionDisconnected {
+  status: 'disconnected';
+}
+
+export interface ConnectionConnecting {
+  status: 'connecting';
+}
+
+export interface ConnectionConnected {
+  status: 'connected';
+}
+
+export interface ConnectionReconnecting {
+  status: 'reconnecting';
+}
+
+export type ConnectionState = ConnectionDisconnected | ConnectionConnecting | ConnectionConnected | ConnectionReconnecting;
+
 const CONNECTION_STATUS_DISPLAY_DELAY_MS = 400;
 const RECONNECT_BASE_DELAY_MS = 1000;
 const RECONNECT_MAX_DELAY_MS = 30000;
@@ -146,7 +164,7 @@ export class BoardHubService {
     ),
   );
 
-  readonly connectionState = toSignal(
+  private readonly rawConnectionState = toSignal(
     this.connection$.pipe(
       switchMap((connection) =>
         connection ? merge(of<HubConnectionState>('connected'), hubLifecycle$(connection)) : of<HubConnectionState>('disconnected'),
@@ -155,6 +173,19 @@ export class BoardHubService {
     ),
     { initialValue: 'disconnected' as HubConnectionState },
   );
+
+  readonly connectionState = computed<ConnectionState>(() => {
+    switch (this.rawConnectionState()) {
+      case 'connected':
+        return { status: 'connected' };
+      case 'connecting':
+        return { status: 'connecting' };
+      case 'reconnecting':
+        return { status: 'reconnecting' };
+      case 'disconnected':
+        return { status: 'disconnected' };
+    }
+  });
 
   private readonly currentConnection = toSignal(this.connection$, { initialValue: null as signalR.HubConnection | null });
 
