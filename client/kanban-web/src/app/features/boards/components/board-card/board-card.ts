@@ -3,7 +3,7 @@ import { Avatar } from '../../../../shared/components/avatar/avatar';
 import { AssignCardRequest, BoardMemberResponse, CardResponse } from '../../models/board.models';
 import { CdkDrag } from '@angular/cdk/drag-drop';
 import { rxResource } from '@angular/core/rxjs-interop';
-import { BoardService } from '../../services/board.service';
+import { BoardFacade } from '../../services/board-facade.service';
 import { MemberService } from '../../services/member.service';
 import { OverlayModule } from '@angular/cdk/overlay';
 import { Combobox, ComboboxPopup, ComboboxWidget } from '@angular/aria/combobox';
@@ -21,7 +21,7 @@ import { ErrorMessage } from '../../../../shared/components/error-message/error-
   imports: [Avatar, CdkDrag, Combobox, ComboboxPopup, ComboboxWidget, Listbox, Option, OverlayModule, ErrorMessage],
 })
 export class BoardCard {
-  private boardService = inject(BoardService);
+  private boardFacade = inject(BoardFacade);
   private memberService = inject(MemberService);
   private dialog = inject(Dialog);
   card = input.required<CardResponse>();
@@ -29,9 +29,9 @@ export class BoardCard {
   readonly listbox = viewChild(Listbox);
   readonly combobox = viewChild(Combobox);
 
-  protected isDeleting = computed(() => this.boardService.deletingCardIds().has(this.card().id));
-  protected isAssigning = computed(() => this.boardService.assigningCardIds().has(this.card().id));
-  protected isOffline = computed(() => this.boardService.isOffline());
+  protected isDeleting = computed(() => this.boardFacade.deletingCardIds().has(this.card().id));
+  protected isAssigning = computed(() => this.boardFacade.assigningCardIds().has(this.card().id));
+  protected isOffline = computed(() => this.boardFacade.isOffline());
   protected errorMessage = signal<string | null>(null);
   popupExpanded = signal(false);
   query = signal('');
@@ -43,7 +43,7 @@ export class BoardCard {
       const query = this.debouncedQuery.value().trim();
       return query.length >= 2 ? { query } : undefined;
     },
-    stream: ({ params }) => this.memberService.search(this.boardService.boardId()!, params.query),
+    stream: ({ params }) => this.memberService.search(this.boardFacade.boardId()!, params.query),
   });
 
   constructor() {
@@ -68,7 +68,7 @@ export class BoardCard {
     this.errorMessage.set(null);
 
     const request: AssignCardRequest = { userId: selected.memberId };
-    this.boardService.assignCard(this.card().id, request).subscribe({
+    this.boardFacade.assignCard(this.card().id, request).subscribe({
       next: () => this.clear(),
       error: (err: HttpErrorResponse) => {
         this.errorMessage.set(extractErrorMessage(err, 'Failed to assign member to card.'));
@@ -80,7 +80,7 @@ export class BoardCard {
     const dialogRef = this.dialog.open<boolean>(ConfirmModal);
     dialogRef.closed.subscribe((isConfirmed) => {
       if (isConfirmed) {
-        this.boardService.deleteCard(this.card().id).subscribe();
+        this.boardFacade.deleteCard(this.card().id).subscribe();
       }
     });
   }

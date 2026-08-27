@@ -5,7 +5,7 @@ import { CdkDragDrop, CdkDragHandle, CdkDropList } from '@angular/cdk/drag-drop'
 import { FormGroup, FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { finalize } from 'rxjs';
-import { BoardService } from '../../services/board.service';
+import { BoardFacade } from '../../services/board-facade.service';
 import { extractErrorMessage } from '../../../../shared/utils/extract-error-message';
 import { ErrorMessage } from '../../../../shared/components/error-message/error-message';
 import { Dialog } from '@angular/cdk/dialog';
@@ -20,7 +20,7 @@ import { ConfirmModal } from '../../../../shared/components/confirm-modal/confir
 export class BoardColumn {
   column = input.required<ColumnResponse>();
   private dialog = inject(Dialog);
-  private boardService = inject(BoardService);
+  private boardFacade = inject(BoardFacade);
 
   protected addCardForm = new FormGroup({
     title: new FormControl('', Validators.required),
@@ -36,12 +36,11 @@ export class BoardColumn {
   protected isEditing = signal(false);
   protected editErrorMessage = signal<string | null>(null);
   protected isSubmittingEdit = signal(false);
-  protected isDeleting = computed(() => this.boardService.deletingColumnIds().has(this.column().id));
-  protected isOffline = computed(() => this.boardService.isOffline());
-
+  protected isDeleting = computed(() => this.boardFacade.deletingColumnIds().has(this.column().id));
+  protected isOffline = computed(() => this.boardFacade.isOffline());
 
   protected onDropped(event: CdkDragDrop<CardResponse[]>): void {
-    this.boardService.moveCard(event);
+    this.boardFacade.moveCard(event);
   }
 
   protected onSubmit() {
@@ -59,7 +58,7 @@ export class BoardColumn {
       columnId: this.column().id,
     };
 
-    this.boardService
+    this.boardFacade
       .createCard(request)
       .pipe(finalize(() => this.isSubmitting.set(false)))
       .subscribe({
@@ -81,7 +80,7 @@ export class BoardColumn {
     const dialogRef = this.dialog.open<boolean>(ConfirmModal);
     dialogRef.closed.subscribe((isConfirmed) => {
       if (isConfirmed) {
-        this.boardService.deleteColumn(this.column().id).subscribe();
+        this.boardFacade.deleteColumn(this.column().id).subscribe();
       }
     });
   }
@@ -109,7 +108,7 @@ export class BoardColumn {
       description: this.editForm.value.description || null,
     };
 
-    this.boardService
+    this.boardFacade
       .updateColumn(this.column().id, request)
       .pipe(finalize(() => this.isSubmittingEdit.set(false)))
       .subscribe({

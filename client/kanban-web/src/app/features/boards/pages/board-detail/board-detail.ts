@@ -1,7 +1,6 @@
 import { Component, DestroyRef, effect, inject, input, signal } from '@angular/core';
 import { BoardColumn } from '../../components/board-column/board-column';
 import { BoardDetailsResponse, ColumnResponse, CreateColumnRequest, UpdateBoardRequest } from '../../models/board.models';
-import { BoardService } from '../../services/board.service';
 import { CdkDrag, CdkDragDrop, CdkDropList, CdkDropListGroup } from '@angular/cdk/drag-drop';
 import { Dialog, DialogModule } from '@angular/cdk/dialog';
 import { InviteModal } from '../../components/invite-modal/invite-modal';
@@ -13,6 +12,7 @@ import { finalize } from 'rxjs';
 import { extractErrorMessage } from '../../../../shared/utils/extract-error-message';
 import { ErrorMessage } from '../../../../shared/components/error-message/error-message';
 import { Router } from '@angular/router';
+import { BoardFacade } from '../../services/board-facade.service';
 
 @Component({
   selector: 'app-board-detail',
@@ -22,7 +22,7 @@ import { Router } from '@angular/router';
 })
 export class BoardDetail {
   board = input.required<BoardDetailsResponse>();
-  protected boardService = inject(BoardService);
+  protected boardFacade = inject(BoardFacade);
   private dialog = inject(Dialog);
   private router = inject(Router);
 
@@ -42,11 +42,11 @@ export class BoardDetail {
   });
 
   constructor() {
-    effect(() => this.boardService.setBoard(this.board()));
+    effect(() => this.boardFacade.setBoard(this.board()));
     effect(() => {
-      if (this.boardService.boardDeleted()) this.router.navigate(['/dashboard']);
+      if (this.boardFacade.boardDeleted()) this.router.navigate(['/dashboard']);
     });
-    inject(DestroyRef).onDestroy(() => this.boardService.leaveRealtimeBoard());
+    inject(DestroyRef).onDestroy(() => this.boardFacade.leaveRealtimeBoard());
   }
 
   openDialog() {
@@ -55,8 +55,8 @@ export class BoardDetail {
 
   onEditBoard() {
     this.editBoardForm.setValue({
-      name: this.boardService.boardName(),
-      description: this.boardService.boardDescription() ?? '',
+      name: this.boardFacade.boardName(),
+      description: this.boardFacade.boardDescription() ?? '',
     });
     this.editErrorMessage.set(null);
     this.isEditingBoard.set(true);
@@ -76,7 +76,7 @@ export class BoardDetail {
       description: this.editBoardForm.value.description || null,
     };
 
-    this.boardService
+    this.boardFacade
       .updateBoard(request)
       .pipe(finalize(() => this.isSubmittingEdit.set(false)))
       .subscribe({
@@ -105,7 +105,7 @@ export class BoardDetail {
       description: this.createColumnForm.value.description || null,
     };
 
-    this.boardService
+    this.boardFacade
       .createColumn(request)
       .pipe(finalize(() => this.isSubmittingCreateColumn.set(false)))
       .subscribe({
@@ -124,7 +124,7 @@ export class BoardDetail {
   }
 
   onColumnDropped(event: CdkDragDrop<ColumnResponse[]>): void {
-    this.boardService.moveColumn(event);
+    this.boardFacade.moveColumn(event);
   }
 
   onColumnDragStarted(): void {

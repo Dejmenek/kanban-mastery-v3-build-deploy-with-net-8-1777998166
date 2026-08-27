@@ -3,7 +3,7 @@ import { DialogRef } from '@angular/cdk/dialog';
 import { FormGroup, FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { finalize } from 'rxjs';
-import { BoardService } from '../../services/board.service';
+import { BoardFacade } from '../../services/board-facade.service';
 import { AddBoardMemberRequest } from '../../models/board.models';
 import { extractErrorMessage } from '../../../../shared/utils/extract-error-message';
 import { ErrorMessage } from '../../../../shared/components/error-message/error-message';
@@ -16,13 +16,13 @@ import { ErrorMessage } from '../../../../shared/components/error-message/error-
 })
 export class InviteModal {
   protected dialogRef = inject<DialogRef<void>>(DialogRef);
-  private boardService = inject(BoardService);
+  private boardFacade = inject(BoardFacade);
   protected inviteForm = new FormGroup({
     email: new FormControl('', [Validators.required, Validators.email]),
   });
   protected errorMessage = signal<string | null>(null);
   protected isSubmitting = signal(false);
-  protected isOffline = computed(() => this.boardService.isOffline());
+  protected isOffline = computed(() => this.boardFacade.isOffline());
 
   protected onSubmit() {
     if (this.inviteForm.invalid) {
@@ -37,7 +37,7 @@ export class InviteModal {
       email: this.inviteForm.value.email!,
     };
 
-    this.boardService
+    this.boardFacade
       .addMember(addMemberRequest)
       .pipe(finalize(() => this.isSubmitting.set(false)))
       .subscribe({

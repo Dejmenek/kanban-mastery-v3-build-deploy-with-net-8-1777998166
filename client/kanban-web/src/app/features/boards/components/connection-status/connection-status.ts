@@ -1,5 +1,5 @@
 import { Component, computed, inject } from '@angular/core';
-import { BoardService } from '../../services/board.service';
+import { BoardFacade } from '../../services/board-facade.service';
 
 @Component({
   selector: 'app-connection-status',
@@ -7,12 +7,12 @@ import { BoardService } from '../../services/board.service';
   styleUrl: './connection-status.css',
 })
 export class ConnectionStatus {
-  private boardService = inject(BoardService);
+  private boardFacade = inject(BoardFacade);
 
-  protected state = this.boardService.connectionState;
+  protected state = this.boardFacade.connectionState;
 
   protected label = computed(() => {
-    switch (this.state()) {
+    switch (this.state().status) {
       case 'connected':
         return 'Live';
       case 'reconnecting':
