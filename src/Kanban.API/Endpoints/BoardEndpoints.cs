@@ -11,7 +11,7 @@ public static class BoardEndpoints
 {
     public static void MapBoardEndpoints(this IEndpointRouteBuilder app)
     {
-        var boards = app.MapGroup("/api/boards")
+        var boards = app.MapGroup("/boards")
             .RequireAuthorization();
 
         boards.MapGet("/", GetAllForUser);
@@ -84,7 +84,7 @@ public static class BoardEndpoints
 
         var result = await boardService.CreateAsync(request, userId, cancellationToken);
 
-        return TypedResults.Created<BoardSummaryResponse>($"/api/boards/{result.Value.Id}", result.Value);
+        return TypedResults.Created<BoardSummaryResponse>($"/api/v1/boards/{result.Value.Id}", result.Value);
     }
 
     private static async Task<IResult> UpdateBoard(

@@ -58,7 +58,7 @@ public static class MemberEndpoints
             return result.Error.ToTypedResult();
         }
 
-        return TypedResults.Created<BoardMemberResponse>($"/api/boards/{boardId}/members/{result.Value.MemberId}", result.Value);
+        return TypedResults.Created<BoardMemberResponse>($"/api/v1/boards/{boardId}/members/{result.Value.MemberId}", result.Value);
     }
 
     private static async Task<IResult> GetAllMembers(

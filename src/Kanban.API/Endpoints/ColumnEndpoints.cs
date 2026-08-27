@@ -57,7 +57,7 @@ public static class ColumnEndpoints
             return result.Error.ToTypedResult();
         }
 
-        return TypedResults.Created($"/api/boards/{boardId}/columns/{result.Value.Id}", result.Value);
+        return TypedResults.Created($"/api/v1/boards/{boardId}/columns/{result.Value.Id}", result.Value);
     }
 
     private static async Task<IResult> DeleteColumn(
