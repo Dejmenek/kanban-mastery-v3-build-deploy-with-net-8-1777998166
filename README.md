@@ -79,6 +79,3 @@ Each board has an **owner** and a list of **members**. Owners manage the board a
   dotnet test tests/Kanban.API.IntegrationTests
   ```
 
-## 📝 TODO
-
-- **API versioning** — introduce versioned routes (e.g. `/api/v1/...`) so the API can evolve without breaking existing clients.
