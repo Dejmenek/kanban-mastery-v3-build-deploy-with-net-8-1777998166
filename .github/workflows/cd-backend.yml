@@ -63,7 +63,7 @@ jobs:
         run: |
           dotnet ef database update \
            --project ${{ env.PROJECT_PATH }} \
-           --connection 'Server=tcp:kanban.database.windows.net,1433;Initial Catalog=free-sql-db-7052672;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;Authentication=Active Directory Default;'
+           --connection 'Server=tcp:kanban-app-db.database.windows.net,1433;Initial Catalog=free-sql-db-4247912;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;Authentication="Active Directory Default";'
 
       - name: Publish project
         run: dotnet publish ${{ env.PROJECT_PATH }} --configuration ${{ env.BUILD_CONFIGURATION }} -o ${{ env.PUBLISH_FOLDER }}
