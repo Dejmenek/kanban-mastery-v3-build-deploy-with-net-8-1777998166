@@ -137,7 +137,7 @@ else
     builder.Services.AddCors(options =>
     {
         options.AddPolicy("ProdPolicy",
-            policyBuilder => policyBuilder.WithOrigins("https://red-bay-0ce75de03.7.azurestaticapps.net")
+            policyBuilder => policyBuilder.WithOrigins("https://polite-rock-0e3279b03.4.azurestaticapps.net")
                 .AllowAnyHeader()
                 .AllowAnyMethod()
                 .SetPreflightMaxAge(TimeSpan.FromMinutes(10))
