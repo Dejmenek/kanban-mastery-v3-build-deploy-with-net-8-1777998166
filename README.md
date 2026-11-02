@@ -4,7 +4,7 @@ A full-stack Kanban board application built with **ASP.NET Core 8** (Web API) an
 
 ## 🌐 Demo
 
-[Live Demo](https://red-bay-0ce75de03.7.azurestaticapps.net)
+[Live Demo](https://polite-rock-0e3279b03.4.azurestaticapps.net)
 
 You can register your own account directly on the demo.
 
